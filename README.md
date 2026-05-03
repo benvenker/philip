@@ -20,15 +20,46 @@ Core rule: every claim in generated docs must trace to local evidence: source co
 Install Philip by placing the full directory in a skill location. Do not copy
 only `SKILL.md`; Philip uses the root reference files and `Workflows/`.
 
-### From npm
+### Recommended: skills CLI
 
-After the package is published, install the helper CLI and copy Philip into a
-skill location:
+Use the open Agent Skills installer:
+
+```bash
+npx skills@latest add benvenker/philip
+```
+
+For a global install:
+
+```bash
+npx skills@latest add benvenker/philip -g
+```
+
+For a specific agent:
+
+```bash
+npx skills@latest add benvenker/philip -a cursor
+npx skills@latest add benvenker/philip -a codex
+npx skills@latest add benvenker/philip -a claude-code
+```
+
+To confirm Philip is discoverable before installing:
+
+```bash
+npx skills@latest add benvenker/philip --list
+```
+
+### Direct npm package
+
+Install the helper CLI, then copy Philip into a skill location:
 
 ```bash
 npm install -g @benvenker/philip
 philip install
 ```
+
+The npm install prints the `philip install` next step so users are not left
+guessing. It does not silently write into `~/.agents/skills` during package
+install.
 
 For a project-local install:
 
@@ -39,6 +70,12 @@ npx @benvenker/philip install --project
 The installer writes the portable skill directory to `~/.agents/skills/philip`
 by default. It also supports `--target ~/.claude/skills`, `--target ~/.cursor/skills`,
 `--force`, and `--dry-run`.
+
+For an explicit one-command global install:
+
+```bash
+PHILIP_AUTO_INSTALL=1 npm install -g @benvenker/philip
+```
 
 ### Manual install
 

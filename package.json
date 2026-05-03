@@ -23,12 +23,14 @@
     "Validation.md",
     "Workflows/",
     "bin/",
+    "scripts/",
     "README.md"
   ],
   "scripts": {
     "check": "node bin/philip.js install --dry-run && npm pack --dry-run",
     "pack:check": "npm pack --dry-run",
-    "install:skill": "node bin/philip.js install"
+    "install:skill": "node bin/philip.js install",
+    "postinstall": "node scripts/postinstall.js"
   },
   "keywords": [
     "agent-skill",
