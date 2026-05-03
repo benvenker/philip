@@ -1,196 +1,275 @@
 # GitLab Orbit Integration
 
-Philip has native integration with GitLab Orbit (Knowledge Graph). When available,
-Orbit replaces file-by-file exploration with graph-aware queries that surface
-ownership, dependencies, churn patterns, and security context in seconds.
+Philip works without Orbit, but Orbit makes exploration faster and harder to fake. Use it when the repo is connected to GitLab Orbit or the GitLab Knowledge Graph.
 
-When Orbit is unavailable, Philip falls back to rg, glob, git log, and manual
-exploration. Every Orbit-dependent workflow has a non-Orbit fallback.
+Orbit exposes graph-backed project knowledge through GitLab's API. Philip uses it for file ownership, cross-file dependencies, merge request history, undocumented hotspots, security context, and narrative summaries for complex areas.
 
 ## Detection
 
-Run this sequence at the start of any workflow:
+Default variables:
 
 ```bash
-# 1. Check for token
-if [ -z "$GITLAB_TOKEN" ] && [ -z "$PRIVATE_TOKEN" ]; then
-  echo "No Orbit token found. Using fallback exploration."
-  exit 0
-fi
-
-# 2. Set the token header
-TOKEN="${GITLAB_TOKEN:-$PRIVATE_TOKEN}"
-
-# 3. Check Orbit availability
-curl -sf -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL:-https://gitlab.com}/api/v4/orbit/status"
+GITLAB_URL="${GITLAB_URL:-https://gitlab.com}"
+PROJECT_ID="${PROJECT_ID:-$(basename "$(git rev-parse --show-toplevel)")}"
 ```
 
-If the status check fails or returns a non-200, use fallback exploration for the
-entire session. Do not retry mid-workflow.
+Check for a token:
+
+```bash
+printenv GITLAB_TOKEN
+```
+
+Check Orbit status:
+
+```bash
+curl --fail --silent \
+  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  "$GITLAB_URL/api/v4/orbit/status"
+```
+
+If status fails because the endpoint is missing, token is absent, or the project is not indexed, fall back to `rg`, `git log`, and filesystem inventory. Do not block documentation work on Orbit.
 
 ## Query Endpoint
 
-All Orbit queries go through a single endpoint:
+All graph queries go to:
 
+```bash
+curl --fail --silent \
+  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data @query.json \
+  "$GITLAB_URL/api/v4/orbit/query"
 ```
-POST /api/v4/orbit/query
-Content-Type: application/json
-PRIVATE-TOKEN: <token>
-```
+
+Use `response_format: "llm"` when the result will feed a narrative section, audit summary, or architecture explanation. Use structured formats when building tables or evidence maps.
+
+## Source Code Domain
+
+Philip primarily queries the `source_code` domain:
+
+- `File`: repository files, paths, ownership, churn, language, and doc linkage.
+- `Definition`: functions, classes, modules, endpoints, commands, schemas, and exported symbols.
+- `ImportedSymbol`: dependency edges between files and definitions.
+
+Use Orbit nodes as evidence in audit findings and written docs. Include enough context that a reader can find the source file without Orbit.
 
 ## Query Types
 
-| Type | Use case |
-|---|---|
-| `search` | Find entities by name, path, or content |
-| `traversal` | Walk relationships (file imports, MR authors, definitions) |
-| `aggregation` | Count, group, rank (top committers, churn hotspots) |
-| `neighbors` | Find entities directly connected to a given node |
-| `path_finding` | Trace dependency chains between two entities |
+### Search
 
-Set `response_format: "llm"` to get narrative prose suitable for doc sections.
-Set `response_format: "structured"` for JSON when you need to process results programmatically.
+Find files, definitions, commands, or docs by name and semantic context.
 
-## Schema Domains
-
-### source_code
-- **File**: path, language, size, last_modified
-- **Directory**: path, file_count
-- **Definition**: name, kind (function/class/method/const), file, line, signature
-- **ImportedSymbol**: name, source_file, importing_file
-
-### code_review
-- **MergeRequest**: title, author, state, created_at, merged_at, file_paths
-- **MergeRequestDiff**: file_path, additions, deletions, mr_id
-
-### core
-- **Project**: name, path, default_branch
-- **User**: username, name, email
-- **Group**: name, path
-
-### security
-- **Vulnerability**: severity, state, title, file_path, pipeline_id
-- **Finding**: scanner, severity, description, location
-
-### plan
-- **WorkItem**: title, type, state, assignees
-- **Label**: title, color
-- **Milestone**: title, due_date, state
-
-## Common Queries for Documentation
-
-### File Ownership and Review History
-
-Who owns a module? Who reviews changes to it?
-
-```bash
-curl -s -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_type": "aggregation",
-    "query": "Find the top 5 authors of MergeRequests that modified files in src/auth/ in the last 6 months, grouped by author.",
-    "response_format": "structured"
-  }'
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "search",
+  "domain": "source_code",
+  "query": "CLI command for project initialization",
+  "node_types": ["Definition", "File"],
+  "limit": 20,
+  "response_format": "llm"
+}
 ```
 
-Use this during audits to identify who should own doc fixes for a module.
+Use for:
 
-### Cross-file Dependency Traversal
+- Finding the source behind a doc claim.
+- Locating public entry points.
+- Discovering docs that mention stale commands.
 
-What depends on a function before you rewrite its docs?
+### Traversal
 
-```bash
-curl -s -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_type": "traversal",
-    "query": "Find all ImportedSymbol nodes that reference the Definition named authenticateUser, and return the importing File paths.",
-    "response_format": "structured"
-  }'
+Walk dependencies from a file or symbol.
+
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "traversal",
+  "domain": "source_code",
+  "start": {
+    "type": "File",
+    "path": "src/cli.ts"
+  },
+  "edges": ["imports", "defines", "calls"],
+  "depth": 2,
+  "response_format": "llm"
+}
 ```
 
-Use this before writing or rewriting API docs to understand the blast radius.
+Use for:
 
-### MR History per File
+- Architecture explanations.
+- Finding config or auth dependencies.
+- Understanding the blast radius of a documented workflow.
 
-When did a file's behavior last change?
+### Aggregation
 
-```bash
-curl -s -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_type": "search",
-    "query": "Find MergeRequests merged in the last 90 days that modified src/config/settings.ts, ordered by merged_at descending.",
-    "response_format": "llm"
-  }'
+Summarize hotspots across the project.
+
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "aggregation",
+  "domain": "source_code",
+  "group_by": ["owner", "language", "doc_coverage"],
+  "metrics": ["file_count", "definition_count", "recent_mr_count", "undocumented_public_symbols"],
+  "filters": {
+    "visibility": "public"
+  },
+  "response_format": "llm"
+}
 ```
 
-Use this to determine if docs went stale after a recent change.
+Use for:
+
+- Documentation health audits.
+- Ownership maps.
+- Identifying undocumented hotspots.
+
+### Neighbors
+
+Inspect the local graph around a node.
+
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "neighbors",
+  "domain": "source_code",
+  "node": {
+    "type": "Definition",
+    "name": "createProject"
+  },
+  "edge_types": ["defined_in", "referenced_by", "imports", "tested_by", "documented_by"],
+  "limit": 50,
+  "response_format": "llm"
+}
+```
+
+Use for:
+
+- Checking if a public symbol is documented.
+- Finding tests for examples.
+- Connecting docs to implementation.
+
+### Path Finding
+
+Find how two concepts connect.
+
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "path_finding",
+  "domain": "source_code",
+  "from": {
+    "type": "File",
+    "path": "docs/setup.md"
+  },
+  "to": {
+    "type": "Definition",
+    "name": "DatabaseConfig"
+  },
+  "max_depth": 4,
+  "response_format": "llm"
+}
+```
+
+Use for:
+
+- Verifying doc claims against code.
+- Finding which implementation backs a setup or API section.
+- Explaining hidden coupling.
+
+## Documentation Queries
+
+### File Ownership
+
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "aggregation",
+  "domain": "source_code",
+  "group_by": ["owner"],
+  "metrics": ["file_count", "recent_mr_count"],
+  "filters": {
+    "paths": ["docs/**", "README.md"]
+  },
+  "response_format": "llm"
+}
+```
+
+Use ownership to route questions, not to blame people. Philip is here because the docs did not finish themselves.
+
+### MR History
+
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "search",
+  "domain": "merge_requests",
+  "query": "recent changes touching authentication setup environment variables",
+  "limit": 20,
+  "response_format": "llm"
+}
+```
+
+Use MR history to detect docs that should have changed with code.
 
 ### Undocumented Hotspots
 
-High churn, zero docs.
-
-```bash
-curl -s -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_type": "aggregation",
-    "query": "Find Files under src/ with more than 10 MergeRequestDiffs in the last 90 days. For each, check if a corresponding .md file exists in docs/. Return only files with no matching doc.",
-    "response_format": "structured"
-  }'
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "aggregation",
+  "domain": "source_code",
+  "group_by": ["path"],
+  "metrics": ["undocumented_public_symbols", "recent_mr_count", "inbound_reference_count"],
+  "filters": {
+    "undocumented_public_symbols": { "gt": 0 }
+  },
+  "sort": ["undocumented_public_symbols:desc", "recent_mr_count:desc"],
+  "limit": 25,
+  "response_format": "llm"
+}
 ```
 
-These are high-priority audit findings: important code that nobody documented.
+Use for audit coverage and "what should we document next?"
 
 ### Security Context
 
-Are there unresolved vulnerabilities in the code the docs describe?
-
-```bash
-curl -s -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_type": "neighbors",
-    "query": "Find Vulnerability and Finding nodes connected to Files under src/auth/, where state is not resolved.",
-    "response_format": "llm"
-  }'
+```json
+{
+  "project_id": "$PROJECT_ID",
+  "query_type": "search",
+  "domain": "source_code",
+  "query": "authentication authorization secrets tokens encryption destructive operations",
+  "node_types": ["Definition", "File"],
+  "limit": 40,
+  "response_format": "llm"
+}
 ```
 
-Use this to flag docs that describe insecure code paths without warnings.
-
-### Definition Discovery
-
-Find all public API surface for documentation coverage analysis.
-
-```bash
-curl -s -H "PRIVATE-TOKEN: $TOKEN" \
-  "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_type": "search",
-    "query": "Find all Definition nodes with kind=function or kind=class in src/api/, sorted by name.",
-    "response_format": "structured"
-  }'
-```
-
-Compare this list against documented APIs to find coverage gaps.
+Use for security guides, runbooks, and audit findings involving credentials, permissions, or data risk.
 
 ## Fallback Exploration
 
-When Orbit is unavailable, replicate these queries using local tools:
+If Orbit is unavailable, use local evidence:
 
-| Orbit query | Fallback |
-|---|---|
-| File ownership | `git log --format='%an' -- <path> \| sort \| uniq -c \| sort -rn` |
-| Dependency traversal | `rg "import.*from.*<module>" --type-add 'src:*.{ts,js,py,go,rs}' -t src` |
-| MR history per file | `git log --oneline --since="90 days ago" -- <path>` |
-| Undocumented hotspots | `git log --format='' --name-only --since="90 days ago" \| sort \| uniq -c \| sort -rn`, then cross-reference against `docs/` |
-| Security context | Not available without Orbit; note the gap in the audit report |
-| Definition discovery | `rg "^(export\s+)?(function\|class\|const\|def\|fn\|pub fn)" src/` |
+```bash
+rg --files -g '*.md' -g '*.mdx' -g 'README*' -g 'docs/**'
+rg -n "process\.env|import\.meta\.env|os\.getenv|std::env|ENV\[" .
+rg -n "auth|authorize|permission|role|token|secret|encrypt|decrypt" .
+git log --name-status --oneline --since='90 days ago'
+git diff --name-only origin/main...HEAD
+```
+
+State the fallback in the final response: "Orbit was unavailable; audit used local filesystem, ripgrep, and git history."
+
+## Evidence Citation
+
+When using Orbit in output, cite both graph and repo evidence:
+
+```markdown
+Evidence: Orbit `Definition:createProject` neighbors `File:src/projects/create.ts`, documented by no node; local path exists at `src/projects/create.ts`.
+```
+
+Never publish Orbit-only claims if the corresponding repo path cannot be named.

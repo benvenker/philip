@@ -1,129 +1,194 @@
-# Document Types
+# Documentation Types
 
-Philip selects a document type based on the audience and purpose. Each type has a
-defined structure. Use the closest match; combine types when a single doc serves
-multiple purposes.
+Use the smallest doc type that solves the user's problem. Do not create a documentation cathedral when the repo needs a working setup guide.
 
-## 1. README / Quickstart
+## Selection Guide
 
-**Audience**: New users, evaluators, drive-by GitHub visitors.
-**Purpose**: Answer "what is this and how do I run it" in under 2 minutes.
+| Need | Doc Type | Use When | Evidence To Gather |
+| --- | --- | --- | --- |
+| First contact | README | The project lacks a clear entry point or the current README is stale. | Package metadata, main binaries, app routes, CI, tests. |
+| Clone to working system | Setup Guide | Users need install, env, local services, or verification steps. | Manifests, Docker Compose, env reads, CI setup, scripts. |
+| Common job | How-To Guide | The user wants to complete one practical task. | Code path for the task, required config, tests, examples. |
+| Public contract | API Reference | The project exposes HTTP, GraphQL, RPC, SDK, plugin, or CLI interfaces. | Route handlers, schemas, OpenAPI, proto, types, CLI parsers. |
+| Understanding | Architecture Guide | Contributors need a map of modules, flows, boundaries, or tradeoffs. | Imports, service boundaries, data stores, diagrams, tests. |
+| Operation | Runbook | Humans operate, deploy, rollback, monitor, or recover the system. | CI/CD, infra config, health checks, logs, metrics, incidents. |
+| Failure recovery | Troubleshooting | Users hit repeated errors or support questions. | Issue history, test failures, logs, known error strings. |
+| Change awareness | Changelog or Release Notes | Users need to know what changed and whether they must act. | Git history, tags, merged PRs, changesets, migrations. |
+| Contribution | Contributor Guide | New contributors need workflow, conventions, tests, review rules. | Existing scripts, lint config, test layout, branch rules. |
+| Security | Security Guide | Auth, permissions, secrets, data handling, or vulnerability reporting matters. | Auth code, secret reads, policy files, threat boundaries. |
+| Migration | Migration Guide | Users must change config, data, APIs, or workflows between versions. | Migrations, compatibility code, deprecations, release commits. |
+| Glossary | Glossary | Project terms are domain-specific or overloaded. | Type names, UI labels, schema names, docs usage. |
 
-**Structure**:
-1. One-line description (no buzzwords).
-2. Prerequisites (language runtime, OS, required services).
-3. Install command (copy-pasteable, verified against current package manifest).
-4. First run / basic usage example (verified against codebase).
-5. Where to go next (links to deeper docs).
+## README
 
-**Rules**: No architecture theory. No history. Get to the install command fast.
+Purpose: orient readers and route them to the right next step.
 
-## 2. Architecture Document
+Include:
 
-**Audience**: Contributors, new team members, future maintainers.
-**Purpose**: Explain how the system is organized and why.
+- What the project does, grounded in repo evidence.
+- Quick start that reaches a working verification command.
+- Common tasks with links.
+- Development and test commands.
+- Pointers to architecture, API, and operations docs.
 
-**Structure**:
-1. System overview (one paragraph, what it does at a high level).
-2. Component map (major modules, their responsibilities, how they connect).
-3. Data flow (request lifecycle, event flow, or pipeline stages).
-4. Key design decisions with trade-off rationale.
-5. Known limitations and technical debt.
+Avoid:
 
-**Rules**: Diagrams must match current code. Reference actual directory names and modules.
-If a component was deleted, it does not belong in the architecture doc.
+- Long architecture essays.
+- Full API references.
+- Claims not backed by current code.
 
-## 3. API Reference
+## Setup Guide
 
-**Audience**: API consumers, integration developers.
-**Purpose**: Precise contract documentation for every public endpoint or function.
+Purpose: get from clone to a verified local or deployed environment.
 
-**Structure per entry**:
-1. Signature (endpoint path + method, or function signature).
-2. Description (one sentence: what it does).
-3. Parameters (name, type, required/optional, default, constraints).
-4. Response / return value (shape, status codes, content type).
-5. Errors (codes, conditions, messages).
-6. Example request and response (verified, minimal).
+Include:
 
-**Rules**: Generated from code when possible. Every entry must be verified against the
-current source. Group by resource or module, not alphabetically.
+- Supported runtimes and package managers.
+- Required services and credentials.
+- Environment variables with source evidence.
+- Install, configure, run, test, and reset steps.
+- Troubleshooting for the first likely failures.
 
-## 4. Configuration Reference
+Required verification:
 
-**Audience**: Operators, self-hosters, DevOps.
-**Purpose**: Document every config option with its type, default, and effect.
+```bash
+# Example shape only. Replace with the repo's real command.
+pnpm test
+```
 
-**Structure**:
-1. Config file location and format.
-2. Environment variables (name, type, default, description).
-3. Config file options (key path, type, default, description).
-4. Precedence rules (env var vs. file vs. CLI flag).
-5. Example minimal config and example full config.
+## How-To Guide
 
-**Rules**: Verify every key against the actual config schema or parsing code.
-Mark deprecated options explicitly.
+Purpose: teach one task end to end.
 
-## 5. Operations / Deployment Guide
+Use for:
 
-**Audience**: Operators, SREs, DevOps.
-**Purpose**: Get the system running in production and keep it running.
+- Adding a provider.
+- Creating a migration.
+- Running a backfill.
+- Adding an integration.
+- Debugging a known failure.
 
-**Structure**:
-1. Infrastructure requirements (compute, storage, network, dependencies).
-2. Deployment steps (verified, copy-pasteable commands).
-3. Health checks and monitoring endpoints.
-4. Scaling guidance.
-5. Backup and restore procedures.
-6. Rollback procedures.
-7. Common failure modes and recovery steps.
+Shape:
 
-**Rules**: Every command must work against the current deployment tooling. Include
-expected output so operators can verify success.
+1. Goal.
+2. Prerequisites.
+3. Steps.
+4. Verify.
+5. Rollback or cleanup when relevant.
 
-## 6. Troubleshooting Guide
+## API Reference
 
-**Audience**: Users and operators hitting problems.
-**Purpose**: Map symptoms to fixes.
+Purpose: document a public interface precisely.
 
-**Structure per entry**:
-1. Symptom (what the user sees: error message, behavior).
-2. Cause (why it happens).
-3. Fix (specific steps, not "check your configuration").
-4. Prevention (how to avoid it next time, if applicable).
+Include:
 
-**Rules**: Organize by symptom, not by internal component. Users search for what they
-see, not what broke internally.
+- Authentication and authorization.
+- Endpoint, method, path, command, or function signature.
+- Parameters and config keys.
+- Request and response examples.
+- Error cases.
+- Versioning and compatibility notes.
 
-## 7. Inline Docstrings
+Evidence must come from schemas, handlers, tests, generated specs, or types. If generated reference exists, link to it and write human usage notes around it.
 
-**Audience**: Developers reading the code.
-**Purpose**: Explain intent, edge cases, and constraints at the call site.
+## Architecture Guide
 
-**Format**: Follow the language convention (JSDoc, Python docstrings, rustdoc, GoDoc).
+Purpose: help contributors make correct changes.
 
-**Rules**:
-- Do not restate the signature. `/** Gets a user */` on `getUser()` is noise.
-- Document the "why" and edge cases: thread safety, nullable returns, side effects.
-- Keep docstrings under 5 lines unless the function genuinely requires more context.
+Include:
 
-## 8. Changelog / Migration Guide
+- System map.
+- Key modules with paths.
+- Request, event, or data flows.
+- Persistence and external dependencies.
+- Security and trust boundaries.
+- Known constraints and non-goals.
 
-**Audience**: Existing users upgrading.
-**Purpose**: Tell users what changed and what they need to do about it.
+Avoid untraceable claims like "the system is modular." Show modules, imports, and boundaries.
 
-**Structure**:
-1. Version and date.
-2. Breaking changes with migration steps.
-3. New features with usage examples.
-4. Bug fixes with references to issues.
-5. Deprecations with sunset timeline and replacement.
+## Runbook
 
-**Rules**: Breaking changes go first and must include concrete migration instructions,
-not just "X was removed."
+Purpose: keep production or shared environments alive.
 
-## Choosing a Type
+Include:
 
-When the request is ambiguous, ask: "Who reads this and what decision does it help
-them make?" Match to the closest type above. If the doc serves two audiences, consider
-splitting into two documents rather than producing a hybrid that serves neither well.
+- Preconditions and permissions.
+- Deploy, rollback, restart, and health-check steps.
+- Monitoring links or commands.
+- Known alerts and recovery actions.
+- Data safety warnings.
+
+Runbooks must be conservative. If a command can delete data, stop and label the blast radius.
+
+## Troubleshooting
+
+Purpose: reduce repeated support loops.
+
+For each item:
+
+- Symptom: exact error or observable behavior.
+- Cause: code/config evidence.
+- Fix: smallest action.
+- Verify: command or observable state.
+
+Use `rg -n "exact error text"` to connect symptoms to source.
+
+## Changelog And Release Notes
+
+Purpose: explain shipped changes from the user's point of view.
+
+Gather:
+
+```bash
+git log --oneline --decorate --no-merges <last-tag>..HEAD
+git diff --name-status <last-tag>..HEAD
+```
+
+Group by user impact: breaking changes, features, fixes, docs, internal. Do not dump commit subjects when they do not explain behavior.
+
+## Contributor Guide
+
+Purpose: make contribution workflow explicit.
+
+Include:
+
+- Branch, commit, and PR expectations if visible in repo docs or config.
+- Install, test, lint, format, and typecheck commands.
+- Directory map.
+- Review and release notes.
+
+Do not invent governance. If branch rules or review requirements are not in the repo, mark them unknown.
+
+## Security Guide
+
+Purpose: make trust boundaries visible.
+
+Include:
+
+- Secret storage and required environment variables.
+- Auth flow and permission model.
+- Data classification and retention if visible.
+- Reporting policy.
+- Dangerous operations and required safeguards.
+
+Evidence patterns:
+
+```bash
+rg -n "auth|authorize|permission|role|token|secret|password|encrypt|decrypt|keychain|vault" .
+rg -n "process\.env|import\.meta\.env|os\.getenv|std::env|ENV\[" .
+```
+
+## Migration Guide
+
+Purpose: help users safely move between versions or systems.
+
+Include:
+
+- Who needs to migrate.
+- Preconditions and backups.
+- Step-by-step migration.
+- Compatibility window.
+- Verification.
+- Rollback if possible.
+
+Evidence comes from migrations, compatibility shims, deprecation warnings, changed schemas, and release commits.

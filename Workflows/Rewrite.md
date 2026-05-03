@@ -1,149 +1,169 @@
 # Rewrite Workflow
 
-**Trigger**: "Fix these docs", "rewrite stale docs", "update this README",
-"these docs are out of date"
+Use this workflow when the user asks Philip to fix stale docs, improve existing docs, update a guide, or make a doc match current code.
 
-This workflow takes existing documentation that is stale, incorrect, or poorly
-written, and updates it to match the current codebase while preserving whatever
-structure still works.
+Load with `../Writing.md`, `../DocTypes.md`, and `../Audit.md` when findings already exist.
 
----
+## 0. Identify The Rewrite Contract
 
-## Step 1: Read the Existing Doc
+Determine:
 
-Read the target document completely. While reading, extract:
+- Which docs are in scope.
+- Whether to preserve structure or redesign it.
+- Whether examples must be executed.
+- Whether the goal is accuracy, readability, completeness, or all three.
 
-1. **Testable claims**: function names, config keys, commands, file paths, version numbers, URLs.
-2. **Structural decisions**: heading hierarchy, section ordering, audience assumptions.
-3. **Good parts**: sections that are well-written and likely still accurate.
-4. **Obvious problems**: stale references, placeholder text, wrong commands.
+Default: preserve useful structure and rewrite inaccurate sections. Do not rewrite the entire doc to leave your fingerprints on it.
 
----
+## 1. Read Existing Docs
 
-## Step 2: Find What Changed
-
-### 2.1: When was the doc last modified?
+Inventory the doc before changing it:
 
 ```bash
-git log -1 --format='%ai %H %s' -- <doc_path>
+rg -n "^#|TODO|FIXME|deprecated|DEPRECATED|TBD|WIP" path/to/doc.md
+rg -n "npm run|pnpm|yarn|cargo|go test|pytest|docker compose|make |curl |kubectl|terraform" path/to/doc.md
+rg -n "PORT|TOKEN|SECRET|DATABASE_URL|API_KEY|localhost|127\.0\.0\.1" path/to/doc.md
 ```
 
-### 2.2: What changed in the source since then?
+Record:
+
+- Good structure worth keeping.
+- Claims requiring verification.
+- Commands and examples.
+- Links and referenced paths.
+- Tone or terminology to preserve.
+
+## 2. Use Git History
+
+Find why the doc became stale:
 
 ```bash
-# Get the doc's last commit hash
-DOC_COMMIT=$(git log -1 --format='%H' -- <doc_path>)
-
-# Find source changes since that commit
-git log --oneline ${DOC_COMMIT}..HEAD -- <source_paths>
-
-# See the actual diff
-git diff ${DOC_COMMIT}..HEAD -- <source_paths>
+git log --follow --name-status --oneline -- path/to/doc.md
+git log --since='180 days ago' --name-status --oneline
+git diff --name-status origin/main...HEAD
 ```
 
-### 2.3: Which specific symbols changed?
-
-For each function, class, or config key referenced in the doc:
+If a documented command, file, or symbol is stale, search its history:
 
 ```bash
-# Check if it still exists
-rg "^(export\s+)?(function|class|const|def|fn|pub fn)\s+<NAME>" --type-add 'src:*.{ts,js,py,go,rs,rb,java}' -t src
-
-# If it exists, check its current signature
-rg "(function|class|const|def|fn|pub fn)\s+<NAME>" -A5 --type-add 'src:*.{ts,js,py,go,rs,rb,java}' -t src
+git log --all --name-status -- "**/old-name*"
+git log -S"oldCommandOrEnvVar" --all -- .
+git log -G"oldCommandOrEnvVar" --all -- .
 ```
 
-### 2.4 (Orbit): Graph-enhanced change analysis
+Use history to distinguish removed behavior from renamed behavior. A stale command with no replacement should be removed or marked unsupported, not "updated" by guessing.
 
-```bash
-# Find MRs that changed the documented module since the doc was last updated
-curl -s -H "PRIVATE-TOKEN: $TOKEN" "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "search", "query": "Find MergeRequests merged after <doc_last_modified_date> that modified files in <source_path>/. Include title, author, and merged_at.", "response_format": "llm"}'
+## 2.5. Build A Change List
 
-# Were there any breaking changes?
-curl -s -H "PRIVATE-TOKEN: $TOKEN" "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "search", "query": "Find MergeRequests merged after <doc_last_modified_date> that modified <source_path>/ and contain the word breaking, deprecat, remov, or renam in the title or description.", "response_format": "llm"}'
-```
-
----
-
-## Step 3: Build a Change List
-
-From the analysis in Step 2, build a list of changes:
+Before editing, turn the evidence into a concrete change list:
 
 | Doc claim | Current code state | Action |
-|---|---|---|
-| `createUser(name, email)` | Renamed to `createAccount(name, email, role)` | Update signature, add `role` param docs |
-| Runs on port 3000 | Default changed to 8080 in config | Update port reference |
-| Uses `lodash` for utilities | `lodash` removed, replaced with native methods | Remove dependency mention |
-| Auth section | Auth module rewritten with OAuth2 | Full section rewrite |
+| --- | --- | --- |
+| `createUser(name, email)` | Renamed to `createAccount(name, email, role)` | Update signature, add `role` parameter docs |
+| Runs on port `3000` | Default changed to `8080` in config | Update port reference and verification step |
+| Uses `lodash` for utilities | `lodash` removed from manifests and imports | Remove dependency mention |
+| Auth section describes API keys | Auth module now uses OAuth2 | Rewrite the section from current source |
 
-Classify each change:
-- **Update**: Small factual correction (renamed symbol, changed default).
-- **Rewrite**: Section needs substantial revision (module was redesigned).
+Classify each row:
+
+- **Update**: Small factual correction, such as a renamed symbol or changed default.
+- **Rewrite**: Section needs substantial revision because the underlying behavior changed.
 - **Delete**: Section documents something that no longer exists.
-- **Add**: A new feature was added that the doc should cover.
+- **Add**: New behavior exists and the doc has no place for it yet.
 
----
+## 3. Re-Verify Against Current Code
 
-## Step 4: Rewrite
+Check each claim category.
 
-### Preservation rules:
-
-1. **Keep good structure.** If the existing heading hierarchy makes sense, keep it.
-2. **Keep good prose.** If a paragraph is accurate and well-written, do not rewrite it for the sake of rewriting.
-3. **Cut stale content ruthlessly.** Do not comment it out or add "deprecated" warnings for things that were removed. Delete them.
-4. **Add new sections at the appropriate hierarchy level.** Do not append everything at the bottom.
-
-### For each item in the change list:
-
-- **Update**: Find the specific sentence or code block and fix it in place.
-- **Rewrite**: Read the current source code for that section's scope, then rewrite the section following the same approach as [Write Workflow Step 3](Write.md).
-- **Delete**: Remove the section. If it leaves a gap in the heading hierarchy, restructure.
-- **Add**: Write the new section following the Write Workflow. Place it where a reader would expect it.
-
----
-
-## Step 5: De-slopify Pass
-
-Run the full de-slopify procedure from [Writing.md](../Writing.md).
-
-Pay extra attention to:
-- New sections you wrote vs. preserved sections. Make sure the voice is consistent.
-- Transition sentences between preserved and rewritten sections.
-- The existing doc may already contain AI artifacts from previous rewrites. Clean those too.
-
----
-
-## Step 6: Verify
-
-### 6.1: Verify every claim from the change list
-
-Confirm each correction is accurate:
+Commands:
 
 ```bash
-rg "<corrected_symbol>" --type-add 'src:*.{ts,js,py,go,rs,rb,java}' -t src
+rg -n '"scripts"|"bin"' package.json
+rg -n "program\.command|Command::new|argparse|click\.|cobra\.Command|commander|clap::" .
+rg -n "Makefile|justfile|Taskfile|\.github/workflows|\.gitlab-ci" .
 ```
 
-### 6.2: Re-verify preserved sections
+Environment:
 
-Sections you kept from the original doc may have additional staleness you missed.
-Spot-check at least the function names and commands in preserved sections.
+```bash
+rg -n "process\.env|import\.meta\.env|os\.getenv|std::env|ENV\[" .
+rg -n "DATABASE_URL|PORT|TOKEN|SECRET|API_KEY" .
+```
 
-### 6.3: Run quality gates
+APIs:
 
-Apply all four gates from [Writing.md](../Writing.md): Accuracy, Completeness,
-Structure, De-slopify.
+```bash
+rg -n "router\.|app\.(get|post|put|patch|delete)|FastAPI|Controller|Route|Query|Mutation" .
+rg --files -g '*openapi*' -g '*swagger*' -g 'proto/**' -g 'graphql/**'
+```
 
----
+Paths:
 
-## Step 7: Deliver
+```bash
+rg --files | rg 'exact/path/or/name'
+```
 
-Present the rewritten documentation with:
+If Orbit is available, query neighbors for each public definition mentioned by the doc and compare `documented_by` edges.
 
-1. The updated doc content.
-2. A summary of changes made (what was updated, rewritten, deleted, added).
-3. Any claims that could not be verified.
-4. The git diff of the doc change, if writing to file.
+## 4. Rewrite With Minimal Damage
+
+Rules:
+
+- Keep accurate headings and sequence.
+- Replace stale claims with verified current behavior.
+- Delete obsolete sections when no replacement exists.
+- Add missing prerequisites before commands.
+- Add verification after setup or operational steps.
+- Preserve project voice unless it is unclear or misleading.
+- Keep link targets and anchors stable when possible.
+
+Rewrite stale sections in place. Move sections only when the current structure blocks comprehension.
+
+## 5. Patch Contradictions
+
+After editing, search for old claims still present:
+
+```bash
+rg -n "oldCommand|oldEnvVar|oldPath|oldEndpoint|oldFeatureName" path/to/doc.md docs README.md
+```
+
+If multiple docs contradict each other, fix all in-scope docs or report the remaining contradiction.
+
+## 6. Verify
+
+Use the safest available checks:
+
+```bash
+rg -n "newCommand|newEnvVar|newPath|newEndpoint" .
+rg --files new/path
+```
+
+Run commands only when safe:
+
+```bash
+pnpm test
+cargo test
+go test ./...
+pytest
+```
+
+For markdown quality:
+
+```bash
+rg -n "Let's dive in|Here's why|At its core|It's worth noting|robust|seamless|powerful|It's not .* it's" path/to/doc.md
+rg -n "\]\([^)]*\)" path/to/doc.md
+```
+
+Follow links manually or with the repo's docs checker if one exists.
+
+## 7. Final Response
+
+Report:
+
+- What changed.
+- Which stale claims were removed or corrected.
+- What evidence was used.
+- Which commands or examples were run.
+- What remains unverified.
+
+If the old guide was actively harmful, say so plainly. Example: "The previous setup section pointed new users at a deleted script; that path is gone now."

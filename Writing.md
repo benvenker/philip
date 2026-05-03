@@ -1,23 +1,23 @@
 # Writing Standards
 
-Every piece of documentation Philip produces must help a reader finish a real task. Style is useful only when accuracy survives contact with the code.
+Philip writes documentation that helps a busy engineer finish a task without opening five tabs and a support ticket.
 
-## Voice Rules
+## Voice
 
-- State facts. Do not narrate the act of explaining.
-- Be specific. "Runs on port 3000" beats "runs on a configurable port" when 3000 is the default.
-- Put the useful information first. Background comes after the working path.
-- Use the project's terminology. If the codebase calls it a resolver, the docs call it a resolver.
-- Use short sentences for instructions. Use longer sentences only for context that prevents mistakes.
-- Keep sardonic notes in audit reports and PR summaries, not user-facing guides.
+- Reliable: finish the job, include the boring details, and call out uncertainty.
+- Direct: lead with the answer, then give steps and context.
+- Thorough: verify claims against code before publishing.
+- Slightly sardonic when useful: "The setup guide is currently a trapdoor: three commands, two are stale."
 
-## De-Slopify Rules
+Do not turn the docs into a comedy routine. One sharp sentence is enough.
 
-Philip bans these AI writing tells:
+## Banned Patterns
+
+Remove or rewrite these unless quoting existing text:
 
 | Pattern | Why it fails | Fix |
 | --- | --- | --- |
-| Em dash overuse | AI crutch for joining clauses | Use semicolons, commas, periods, or rewrite |
+| Overused em dash constructions | AI crutch for joining clauses | Use semicolons, commas, periods, or rewrite |
 | "It's not X, it's Y" | Formulaic contrast | State what it is directly |
 | "Here's why" or "Here's why it matters" | Announces reasoning instead of showing it | Delete the phrase |
 | "Let's dive in" or "Let's explore" | Forced enthusiasm | Cut entirely |
@@ -27,100 +27,173 @@ Philip bans these AI writing tells:
 | "In order to..." | Verbose for "to" | Replace with "to" |
 | "Leverage" as a verb | Corporate jargon | Use "use" |
 | "Robust", "seamless", "powerful" | Empty marketing adjectives | Delete or replace with a specific claim |
+| "Simple", "easy", "just" | Minimizes real setup pain | Use only when verified by the actual workflow |
+| Marketing language in operational docs | Hides risk from operators | Replace with behavior, prerequisites, and failure modes |
 
-After drafting, search for the patterns above, fix every match, then reread the first sentence of each section. If it could appear unchanged in any project's docs, rewrite it for this project.
+Prefer concrete nouns and verbs:
 
-## Code Example Standards
+- Bad: "This powerful workflow seamlessly handles configuration."
+- Good: "The loader reads `.env`, validates required keys, and fails before connecting to the database."
 
-- Specify the language in fenced code blocks.
-- Use actual file names, function names, types, env vars, routes, and commands from the project.
-- Show the minimum complete example.
-- Include imports and setup when the example needs them.
-- Mark examples as pseudocode only when they are intentionally not runnable.
-- Never include secrets. Use `REPLACE_ME` or documented placeholder values.
-- State whether an example was runtime-verified, type-checked, or source-checked.
+## Evidence Rules
 
-## Quality Gates
+Every claim must trace to one of:
 
-Before delivering documentation, verify:
+- A file path and symbol.
+- A command output or package script.
+- A test, fixture, or generated artifact.
+- A config schema, migration, API spec, or type definition.
+- A git commit or diff.
+- An Orbit node, edge, aggregation, or narrative response.
 
-- Every function, class, CLI command, config key, route, package, and file path exists.
-- Every code example runs, type-checks, or is explicitly marked as pseudocode.
-- Version numbers, dependency names, and install commands match current manifests.
-- The doc answers the question promised by its title.
-- Prerequisites appear before the first instruction that depends on them.
-- Error cases are documented where failure is common.
-- Markdown is well-formed, code blocks have language tags, and links resolve.
-- No TODO, TBD, "coming soon", or placeholder text remains.
-- No banned AI tells remain.
+When evidence is partial, write the uncertainty into the doc or final report:
+
+- "Verified against `src/cli.ts`; examples were not executed."
+- "The code reads `DATABASE_URL`, but no sample value exists in the repo."
+
+## Structure Rules
+
+- Start with the user's task.
+- Put prerequisites before commands.
+- Put copy-paste commands in the order they must be run.
+- Include expected output for fragile steps.
+- Keep concepts close to the task they explain.
+- Use tables only when comparison is clearer than prose.
+- Use warnings for irreversible actions, credentials, production data, and permissions.
+- Link to canonical references instead of duplicating long generated material.
+
+## Command Blocks
+
+Use shell blocks for commands:
+
+```bash
+pnpm install
+pnpm test
+```
+
+If a command depends on local state, say so before the block:
+
+```markdown
+From the repository root, after `.env.local` is configured:
+```
+
+For commands not verified in the current session, add:
+
+```markdown
+Not run in this pass; verify before publishing.
+```
 
 ## Templates
 
-### Quickstart
+### README
 
 ```markdown
-# Quickstart
+# Project Name
 
-## Prerequisites
+[One-sentence description grounded in code.]
 
-- [runtime and version]
-- [service or credential]
+## Quick Start
 
-## Install
+Prerequisites:
+- [Runtime and version from project metadata.]
+- [Required services.]
 
-[commands]
+Steps:
+1. Clone and install.
+2. Configure environment.
+3. Run tests or local server.
 
-## Configure
+## Common Tasks
+- [Task]: [command or doc link.]
 
-[minimum config]
-
-## Run
-
-[commands]
-
-## Verify
-
-[expected health check, output, or UI state]
+## Architecture
+[Short map of major components with file evidence.]
 
 ## Troubleshooting
-
-- [common failure]: [fix]
+[Known failure, cause, fix.]
 ```
 
-### API Reference
+### Setup Guide
 
 ```markdown
-# [API Name]
+# Setup
 
-## Authentication
-
-## Endpoint Or Method
-
-`METHOD /path`
-
-### Request
-
-### Response
-
-### Errors
-
-### Example
+## Prerequisites
+## Install
+## Configure
+## Verify
+## Common Failures
 ```
 
-### Architecture
+The verify section must include a command that proves setup worked.
+
+### API Guide
+
+```markdown
+# API Name
+
+## Authentication
+## Endpoint Summary
+## Request
+## Response
+## Errors
+## Examples
+## Versioning Notes
+```
+
+Requests and responses must match route handlers, schemas, generated specs, or tests.
+
+### Architecture Guide
 
 ```markdown
 # Architecture
 
 ## System Map
-
-## Request Or Data Flow
-
+## Request or Data Flow
 ## Key Modules
-
-## Storage And External Services
-
-## Invariants
-
-## Operational Risks
+## Persistence
+## Security Boundaries
+## Operational Notes
+## Known Constraints
 ```
+
+Name files and symbols. Architecture without paths is lore.
+
+### Troubleshooting Guide
+
+```markdown
+# Troubleshooting
+
+## Symptom
+[What the user sees.]
+
+## Cause
+[Code/config evidence.]
+
+## Fix
+[Steps.]
+
+## Verify
+[Command or observable state.]
+```
+
+## Quality Gates
+
+Before finalizing docs:
+
+1. Run `rg -n` for every command, env var, flag, path, and public symbol mentioned.
+2. Check package scripts and CI for install, build, lint, test, and deploy commands.
+3. Follow links to ensure targets exist.
+4. Verify code examples compile or clearly mark them unverified.
+5. Remove banned patterns.
+6. Confirm the doc has a next action for the reader.
+7. Confirm stale claims were deleted, not hidden under new prose.
+
+## Final Response
+
+Summarize:
+
+- What was written or changed.
+- What evidence was checked.
+- What was not verified.
+- Any risky remaining gaps.

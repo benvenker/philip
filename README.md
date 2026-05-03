@@ -1,135 +1,194 @@
 # Philip
 
-The documentation writer who actually shows up.
+Philip is an AI documentation-writing skill for software projects. It audits, writes, rewrites, and maintains docs by checking claims against code evidence instead of polishing folklore.
 
-Philip is an AI skill that audits, writes, rewrites, and maintains software
-documentation. He reads the code, cross-references every claim, strips out AI
-writing artifacts, and optionally queries GitLab Orbit for graph-aware codebase
-understanding.
+Backstory: friends working on the GitLab Knowledge Graph project complained that their human docs writer did not finish the job. Philip is the AI replacement who actually shows up.
 
-## Why Philip Exists
+## What Philip Does
 
-The GitLab Knowledge Graph team needed documentation. They hired a human to write
-it. The human didn't finish. Philip does.
+Philip supports four modes:
+
+| Mode | Use When | Output |
+| --- | --- | --- |
+| `audit` | "What's wrong with our docs?" | Severity-ranked documentation health report. |
+| `write` | "Write docs for X." | New README, guide, API doc, runbook, or reference material. |
+| `rewrite` | "Fix these stale docs." | Updated existing docs that match current code. |
+| `maintain` | "Update docs for this PR." | Surgical doc patches for the current diff. |
+
+Core rule: every claim in generated docs must trace to source code, tests, config, git history, command output, or GitLab Orbit evidence.
 
 ## Install
 
-Copy this directory to your AI agent's skills folder:
+Install Philip by placing the full directory in a skill location. Do not copy
+only `SKILL.md`; Philip uses the root reference files and `Workflows/`.
 
 ```bash
+# Preferred global agent skills directory
+mkdir -p ~/.agents/skills
+cp -R philip ~/.agents/skills/philip
+
 # Claude Code
-cp -r philip/ ~/.claude/skills/philip/
+mkdir -p ~/.claude/skills
+cp -R philip ~/.claude/skills/philip
 
 # Cursor
-cp -r philip/ ~/.cursor/skills/philip/
+mkdir -p ~/.cursor/skills
+cp -R philip ~/.cursor/skills/philip
 
 # Codex
-cp -r philip/ ~/.codex/skills/philip/
+mkdir -p ~/.codex/skills
+cp -R philip ~/.codex/skills/philip
 ```
 
-Philip is a composite skill. The agent loads `SKILL.md` first, which routes to
-the appropriate context files and workflow based on your request.
+For a project-shared skill, commit it under:
+
+```bash
+.cursor/skills/philip/
+```
+
+Expected structure:
+
+```text
+philip/
+  SKILL.md
+  Audit.md
+  Writing.md
+  DocTypes.md
+  OrbitIntegration.md
+  Workflows/
+    Audit.md
+    Write.md
+    Rewrite.md
+    Maintain.md
+  README.md
+```
 
 ## Usage
 
-### Audit: "What's wrong with our docs?"
+Ask for the mode naturally:
 
-```
-Audit the documentation in this repo. Give me a health report.
-```
-
-Philip explores the codebase, inventories all existing docs, cross-references doc
-claims against current code, and produces a severity-ranked report with a
-recommended fix order. For large repos, he splits exploration across sub-agents.
-
-### Write: "Write docs for X"
-
-```
-Write API documentation for the auth module.
+```text
+Use Philip to audit the docs for this repo.
 ```
 
-Philip deep-reads the source code, selects the appropriate doc template, writes
-the content, runs a de-slopify pass to remove AI writing artifacts, and verifies
-every code example against the codebase.
-
-### Rewrite: "Fix these existing docs"
-
-```
-The README is out of date. Rewrite it to match the current codebase.
+```text
+Use Philip to write a setup guide for the local development workflow.
 ```
 
-Philip uses git history to find what changed since the docs were last touched,
-builds a change list, rewrites stale sections while preserving good structure,
-and verifies the result.
-
-### Maintain: "Update docs for this diff"
-
-```
-Update the docs for PR #142.
+```text
+Use Philip to rewrite docs/api.md so it matches the current route handlers.
 ```
 
-Lightweight mode for CI or post-merge workflows. Philip parses the diff, finds
-which docs reference the changed code, patches only the affected sections, and
-confirms no stale references remain.
+```text
+Use Philip to update docs for the current PR diff.
+```
 
-## GitLab Orbit Integration
+Philip starts by routing through `SKILL.md`, then loads only the needed workflow and reference files. That keeps the active context small while preserving detailed procedures for heavy work.
 
-When Philip detects a GitLab token, he queries the Orbit Knowledge Graph API for
-file ownership, dependency traversal, MR history, undocumented hotspots, and
-security context. This produces smarter audits and more accurate documentation.
+## Modes
 
-To enable:
+### Audit
+
+Philip inventories documentation, explores the codebase, cross-references claims, and produces a severity-ranked report.
+
+Audit checks include:
+
+- Missing setup, API, architecture, operations, security, and troubleshooting docs.
+- Commands that no longer exist.
+- Environment variables not documented.
+- API examples that diverge from handlers, schemas, or tests.
+- Recent code changes that did not update docs.
+- Undocumented public symbols and high-churn areas.
+
+### Write
+
+Philip deep-reads the source, chooses the right doc type, drafts from evidence, removes AI filler, and verifies examples where safe.
+
+Supported doc types include README, setup guide, how-to guide, API reference, architecture guide, runbook, troubleshooting guide, changelog, contributor guide, security guide, migration guide, and glossary.
+
+### Rewrite
+
+Philip updates existing docs without flattening useful structure. It uses git history to identify renamed commands, deleted paths, changed config, and stale examples.
+
+Default behavior: keep the good parts, remove the trapdoors.
+
+### Maintain
+
+Philip reads the current diff, classifies user-visible changes, finds affected docs, and patches only the sections that need to change.
+
+This is the mode for PRs and merge requests.
+
+## GitLab Orbit Setup
+
+Philip has native GitLab Orbit and GitLab Knowledge Graph support. Orbit is optional; without it, Philip falls back to local `rg`, filesystem, and git history.
+
+Set credentials:
 
 ```bash
-export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
-# Optional: set the GitLab instance URL (defaults to https://gitlab.com)
-export GITLAB_URL="https://gitlab.example.com"
+export GITLAB_TOKEN="glpat-..."
+export GITLAB_URL="https://gitlab.com"
+export PROJECT_ID="group/project"
 ```
 
-Philip checks Orbit availability at the start of each workflow by hitting
-`GET /api/v4/orbit/status`. If Orbit is unavailable, he falls back to rg, glob,
-and git log without interrupting the workflow.
+Check Orbit:
 
-See [OrbitIntegration.md](OrbitIntegration.md) for query examples and schema details.
-
-## File Structure
-
-```
-SKILL.md                # Entry point: mode routing and personality (~50 lines)
-Audit.md                # Audit engine: what to check, severity model, report format
-Writing.md              # Writing standards, de-slopify rules, quality gates
-DocTypes.md             # Supported document types and templates
-OrbitIntegration.md     # GitLab Orbit API integration details
-Workflows/
-  Audit.md              # Full audit workflow (explore -> inventory -> cross-ref -> report)
-  Write.md              # Write new documentation workflow
-  Rewrite.md            # Fix/update existing documentation workflow
-  Maintain.md           # Diff-driven documentation maintenance workflow
-README.md               # This file
+```bash
+curl --fail --silent \
+  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  "$GITLAB_URL/api/v4/orbit/status"
 ```
 
-## What Philip Bans
+Query Orbit:
 
-Philip's writing standards explicitly reject common AI tells:
+```bash
+cat > query.json <<'JSON'
+{
+  "project_id": "group/project",
+  "query_type": "search",
+  "domain": "source_code",
+  "query": "undocumented public CLI commands",
+  "node_types": ["Definition", "File"],
+  "limit": 20,
+  "response_format": "llm"
+}
+JSON
 
-- Emdash overuse (use semicolons, commas, or rewrite)
-- "Here's why" / "Here's why it matters"
-- "Let's dive in" / forced enthusiasm
-- "At its core..." / pseudo-profound openers
-- "It's worth noting..." / unnecessary hedges
-- "Robust" / "seamless" / "powerful" (empty marketing)
-- "It's not X, it's Y" (formulaic contrast)
+curl --fail --silent \
+  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data @query.json \
+  "$GITLAB_URL/api/v4/orbit/query"
+```
 
-See [Writing.md](Writing.md) for the full banned-patterns table and de-slopify procedure.
+Philip uses Orbit for:
 
-## How It Works
+- File ownership.
+- Cross-file dependencies through `File`, `Definition`, and `ImportedSymbol` nodes.
+- Merge request history.
+- Undocumented hotspots.
+- Security context.
+- Graph paths between docs and code.
 
-1. **SKILL.md** receives the request and routes to the correct mode.
-2. The agent loads only the context files that mode needs (writing standards,
-   doc types, audit criteria, Orbit integration).
-3. The workflow file provides step-by-step instructions the agent follows.
-4. Every workflow ends with verification against the actual codebase.
-5. Every writing workflow includes a de-slopify pass.
+## Writing Standards
 
-Philip does not guess. He reads the code, checks the claims, and writes what he
-finds. If he cannot verify something, he says so instead of making it up.
+Philip bans common AI tells: overused em dash constructions, "It's not X it's Y", "Here's why", "Let's dive in", "At its core...", "It's worth noting...", and generic praise words like "robust", "seamless", and "powerful".
+
+The writing style is practical:
+
+- Start with the task.
+- Put prerequisites before commands.
+- Include verification steps.
+- Mark unverified examples.
+- Cite code evidence.
+- Delete stale claims instead of burying them.
+
+## Quality Bar
+
+Philip is done only when:
+
+- Requested docs are written or the audit report is complete.
+- Commands, env vars, paths, APIs, and examples trace to evidence.
+- Unsupported claims are removed or marked unknown.
+- The final answer states what changed, what was checked, and what remains risky.
+
+If a setup guide has three commands and two are stale, Philip says so. Then he fixes it.

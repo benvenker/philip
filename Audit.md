@@ -1,86 +1,123 @@
 # Audit Engine
 
-Philip audits documentation by treating every doc claim as a testable assertion
-about the current project. No assertion survives without evidence.
+Philip's audit engine answers one question: where do the docs diverge from the product a developer actually has to use?
 
-## Evidence Standard
+An audit is not a grammar pass. It is a code-evidence review of the documentation system: what exists, what is missing, what lies by being stale, and what blocks users from completing real tasks.
 
-Every reported issue must include at least one of:
+## Evidence Model
 
-- A source reference proving the doc is stale, incomplete, or wrong.
-- A search showing a documented symbol, command, route, or config key no longer exists.
-- Git history showing code changed after the doc section was last touched.
-- Orbit graph evidence: ownership gaps, churn without doc updates, unresolved vulnerabilities.
+Every finding needs at least one evidence source:
 
-If evidence is weak, label the item "needs confirmation" instead of stating it as fact.
+- Source code: symbols, imports, routes, CLI commands, public APIs, config defaults.
+- Tests: behavior contracts, fixtures, golden outputs, regression names.
+- Project metadata: package manifests, lockfiles, build config, Dockerfiles, CI workflows.
+- Git history: commits, deleted files, renamed commands, recent feature work.
+- Runtime help: `--help`, generated API docs, schema output, OpenAPI specs.
+- Orbit: file ownership, dependencies, merge request history, graph neighborhoods.
 
-## What to Check
+If a claim cannot be tied to evidence, classify it as "unverified" instead of "wrong."
 
-### Correctness
+## What To Check
 
-- Install commands reference the right package manager, binary names, scripts, and env vars.
-- Code examples compile, run, or at minimum reference APIs that exist in the current codebase.
-- Documented function/class/route/CLI signatures match their actual definitions.
-- Screenshots, diagrams, and architecture descriptions reflect current components.
-- Security, auth, permissions, and data retention claims match code and config.
+### Coverage
 
-### Completeness
+- Is there a clear entry point: `README.md`, `docs/index.md`, or equivalent?
+- Are install, setup, configuration, development, testing, deployment, and troubleshooting covered where relevant?
+- Do public APIs, CLIs, services, config files, and extension points have matching docs?
+- Are generated or canonical docs identified so humans do not edit the wrong file?
+- Are security, auth, data retention, permissions, and destructive operations documented?
 
-- New users can install, configure, run, test, and troubleshoot the project from docs alone.
-- Operators can deploy, monitor, roll back, and recover using documented procedures.
-- Contributors can understand architecture, dev workflow, test strategy, and release process.
-- API consumers can find inputs, outputs, errors, auth, rate limits, pagination, and examples.
-- Maintainers can map major modules to owners, invariants, and risky dependencies.
+Useful inventory patterns:
 
-### Staleness
+```bash
+rg --files -g '*.md' -g '*.mdx' -g 'README*' -g 'docs/**'
+rg --files -g 'package.json' -g 'pyproject.toml' -g 'Cargo.toml' -g 'go.mod' -g 'Dockerfile*' -g '.github/workflows/**' -g '.gitlab-ci.yml'
+rg --files -g '*openapi*' -g '*swagger*' -g 'proto/**' -g 'graphql/**'
+```
 
-- Docs reference deleted files, renamed packages, old commands, dead links, or obsolete diagrams.
-- High-churn source files have no corresponding doc updates.
-- Docs predate major migrations, framework upgrades, or API redesigns without revision.
-- "TODO", "coming soon", and "temporary" notes that have survived long enough to be archaeology.
+### Accuracy
+
+- Commands in docs match package scripts, CLI parser definitions, Make targets, task runners, or CI steps.
+- Environment variables match code reads and config schemas.
+- File paths still exist.
+- API examples match current request and response types.
+- Screenshots and UI descriptions match current routes or component names.
+- Version numbers and feature flags match project metadata.
+
+Useful cross-check patterns:
+
+```bash
+rg -n "process\.env|import\.meta\.env|os\.getenv|std::env|ENV\[|config\." .
+rg -n "program\.command|Command::new|argparse|click\.|cobra\.Command|commander" .
+rg -n "npm run|pnpm|yarn|cargo|go test|pytest|docker compose|make " README.md docs
+git log --name-status --oneline -- docs README.md
+```
 
 ### Usability
 
-- The first successful path through the docs is obvious within 60 seconds.
-- Prerequisites are explicit (language version, OS, required services).
-- Sections ordered by user task, not internal org chart.
-- Error recovery documented where failure is common.
-- Example count is useful, not a museum of stale snippets.
+- A new contributor can get from clone to first successful test without guessing.
+- Task docs are ordered by what users need to do, not by internal architecture trivia.
+- Error recovery is documented for known failure points.
+- Examples include expected output when it helps detect failure.
+- Cross-links point to the next useful action, not a documentation maze.
 
-## Severity Model
+### Freshness
 
-| Severity | Definition | Examples |
-|---|---|---|
-| **Critical** | Causes data loss, security mistakes, broken installs, invalid API usage | Wrong auth example, install command pulls deleted package |
-| **High** | Blocks common user or contributor workflows | Missing setup guide, wrong build command |
-| **Medium** | Causes confusion, slows setup, partially wrong behavior docs | Outdated config options, renamed parameters |
-| **Low** | Polish, structure, broken non-essential links, wording | Typos, formatting, dead internal links |
+- Docs changed alongside code in recent feature commits.
+- Recently renamed files, commands, flags, routes, and config keys are reflected.
+- Deprecated behavior is marked with replacement guidance.
+- Changelog, README, and API references agree.
 
-Within each severity, rank by blast radius: README/quickstart first, then public API docs,
-then deploy/operator docs, then contributor docs, then internal notes.
+Useful freshness patterns:
 
-## Gap Categories
+```bash
+git log --since='90 days ago' --name-status --oneline
+git diff --name-only origin/main...HEAD
+git log --follow --oneline -- path/to/doc.md
+```
 
-When docs are missing entirely, classify the gap:
+If the repo has no `origin/main`, detect the base with `git merge-base --fork-point` or ask the user.
 
-- Missing quickstart or getting-started guide
-- Missing configuration reference
-- Missing API or CLI reference
-- Missing architecture overview
-- Missing deployment or operations guide
-- Missing troubleshooting guide
-- Missing security model or threat documentation
-- Missing contribution workflow
-- Missing changelog or migration guide
-- Missing ownership or support contact
+## Severity Rubric
 
-## Report Structure
+Use severity based on user harm, not how annoyed Philip feels.
 
-Every audit report must include these sections:
+| Severity | Meaning | Examples |
+| --- | --- | --- |
+| Critical | Blocks install, build, deploy, auth, data safety, or security-sensitive work. | Setup command no longer exists; docs tell users to disable auth; migration instructions lose data. |
+| High | Misleads users on common workflows or public contracts. | API docs show removed fields; CLI flags are stale; required env vars are missing. |
+| Medium | Causes avoidable confusion or incomplete work. | Architecture overview omits a major service; troubleshooting lacks known error recovery. |
+| Low | Polish, wording, organization, or minor discoverability issue. | Repeated content, weak link text, dated screenshots with no behavioral mismatch. |
 
-1. **Executive summary**: Total docs inspected, major risks, highest-impact fix.
-2. **Inventory**: Doc files grouped by purpose with last-modified dates.
-3. **Findings**: Each with severity, evidence, affected users, recommended fix, likely owner.
-4. **Gaps**: Undocumented surfaces with the search evidence used to confirm absence.
-5. **Fix order**: Smallest sequence of changes that improves user success rate fastest.
-6. **Unknowns**: Claims that could not be verified and what evidence would settle them.
+## Audit Output
+
+Use this structure unless the user asks for another format:
+
+```markdown
+# Documentation Audit
+
+## Executive Summary
+[One direct paragraph: health, top risks, likely effort.]
+
+## Findings
+### Critical
+- [Finding title]
+  - Evidence: `path`, symbol, command, commit, or Orbit node.
+  - Impact: [Who gets hurt and how.]
+  - Fix: [Specific change.]
+
+### High
+...
+
+## Coverage Map
+| Area | Existing Docs | Code Evidence | Status |
+
+## Recommended Plan
+1. [Smallest high-value fix.]
+2. [Next fix.]
+
+## Unknowns
+- [Claims not verified and why.]
+```
+
+No finding without evidence. No vague "improve docs" recommendations. The fix should name the doc section or new doc type needed.

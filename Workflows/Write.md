@@ -1,159 +1,168 @@
 # Write Workflow
 
-**Trigger**: "Write docs for X", "document this API", "create a README for this module"
+Use this workflow when the user asks Philip to write new documentation for a feature, module, workflow, API, CLI, setup process, architecture area, or project.
 
-This workflow writes new documentation from scratch. It reads the code, selects a
-template, drafts the content, strips AI artifacts, and verifies every claim.
+Load with `../Writing.md`, `../DocTypes.md`, and `../OrbitIntegration.md` if Orbit is available.
 
----
+## 0. Define The Target
 
-## Step 1: Clarify Scope
+Capture:
 
-Before reading code, determine:
+- Topic or code area.
+- Audience.
+- Doc type.
+- Destination file if specified.
+- Required format or style.
+- Verification expectation: run examples, static check only, or mark unverified.
 
-1. **What** is being documented? (A module, API, feature, the whole project?)
-2. **Who** reads this? (New users, API consumers, contributors, operators?)
-3. **What type** of doc fits? Consult [DocTypes.md](../DocTypes.md) to pick the template.
+If the doc type is unclear, use `../DocTypes.md` to choose the smallest useful type.
 
-If the request is vague ("write docs for X"), pick the doc type that serves the
-broadest audience first. For a module, that is usually an API reference with a
-brief overview section. For the project as a whole, start with the README.
+## 1. Find Evidence
 
-If an audit report exists, pull the top unresolved item from the fix list.
-
----
-
-## Step 2: Deep-Read the Source
-
-Read the relevant source code thoroughly before writing a single sentence.
-
-### 2.1: Find the source files
+Start from user-provided paths. If none are given, search:
 
 ```bash
-# Find files related to the target
-rg -l "<target_name>" --type-add 'src:*.{ts,js,py,go,rs,rb,java}' -t src
-rg --files | rg '<target_name>'
+rg --files -g 'README*' -g 'docs/**' -g '*.md' -g '*.mdx'
+rg --files -g 'src/**' -g 'app/**' -g 'lib/**' -g 'packages/**' -g 'crates/**' -g 'cmd/**'
+rg --files -g 'package.json' -g 'pyproject.toml' -g 'Cargo.toml' -g 'go.mod' -g 'Dockerfile*' -g '.github/workflows/**' -g '.gitlab-ci.yml'
 ```
 
-### 2.2: Read entry points and public API
-
-Read the main file(s) for the target. Focus on:
-- Exported functions, classes, types
-- Constructor parameters and initialization
-- Public method signatures
-- Event emissions and callbacks
-- Error conditions and thrown exceptions
-
-### 2.3: Read tests for usage examples
+Then search by feature terms:
 
 ```bash
-# Find test files for the target
-rg -l "<target_name>" --type-add 'test:*.{test,spec}.{ts,js,py}' -t test
-rg --files -g *test* -g *spec* | rg <target_name>
+rg -n "FeatureName|command-name|ENV_VAR|route-name|className|functionName" .
 ```
 
-Tests show how the code is actually used. Extract patterns for examples.
+For Orbit-enabled repos:
 
-### 2.4: Read config and dependencies
+- Search for the feature name across `Definition` and `File`.
+- Traverse imports and calls to understand dependencies.
+- Query neighbors for `tested_by` and `documented_by`.
+- Ask for MR history if the feature changed recently.
+
+## 2. Read Deeply
+
+Read enough code to explain behavior, not just enough to sound plausible.
+
+Gather:
+
+- Entry points.
+- Public interfaces.
+- Required config and defaults.
+- Error cases.
+- Data flow.
+- Tests and examples.
+- Existing docs and terminology.
+
+Evidence checklist:
 
 ```bash
-# What does this module depend on?
-rg "import.*from" <target_files> --type ts --type js
-rg "^from\s+\S+\s+import" <target_files> --type py
-rg "^use\s+" <target_files> --type rust
+rg -n "process\.env|import\.meta\.env|os\.getenv|std::env|ENV\[" .
+rg -n "throw new|raise |panic!|bail!|Result<|Error|Exception" relevant/path
+rg -n "describe\(|it\(|test\(|pytest|#[test]|go test|fixture|golden" .
 ```
 
-### 2.5 (Orbit): Graph-enhanced exploration
+## 3. Choose Template
+
+Use `../DocTypes.md`:
+
+- README for project entry point.
+- Setup Guide for install and verification.
+- How-To Guide for one task.
+- API Reference for public contracts.
+- Architecture Guide for mental model and change guidance.
+- Runbook for operations.
+- Troubleshooting Guide for repeated failures.
+- Migration Guide for version or data changes.
+
+Do not mix all doc types into one file unless the repo is tiny and the README is the only documentation surface.
+
+## 4. Draft From Evidence
+
+Write in this order:
+
+1. User goal.
+2. Prerequisites.
+3. Steps or concepts.
+4. Verification.
+5. Failure modes.
+6. Links to deeper references.
+
+Use paths and symbols naturally:
+
+```markdown
+The CLI entry point is `src/cli.ts`; the `init` command loads config from `src/config/load.ts`.
+```
+
+When a claim is inferred, label it:
+
+```markdown
+The docs do not show a production deployment path. CI suggests `pnpm build` is the release verification step.
+```
+
+## 5. Verify Examples
+
+Prefer safe verification:
 
 ```bash
-# Find all definitions in the target module
-curl -s -H "PRIVATE-TOKEN: $TOKEN" "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "search", "query": "Find all Definition nodes in files under <target_path>/.", "response_format": "structured"}'
-
-# Find what depends on this module
-curl -s -H "PRIVATE-TOKEN: $TOKEN" "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "traversal", "query": "Find all ImportedSymbol nodes that reference Definitions in <target_path>/, and return the importing File paths.", "response_format": "structured"}'
-
-# Who owns this code?
-curl -s -H "PRIVATE-TOKEN: $TOKEN" "${GITLAB_URL}/api/v4/orbit/query" \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "aggregation", "query": "Find the top 3 MergeRequest authors for files in <target_path>/ in the last 6 months.", "response_format": "structured"}'
+rg -n "documented-command|ENV_VAR|path/from/docs" .
+rg -n '"documented-script"' package.json
+rg --files path/from/docs
 ```
 
----
-
-## Step 3: Draft the Content
-
-Using the template from [DocTypes.md](../DocTypes.md), write the documentation.
-
-### Drafting rules:
-
-1. **Start with what the reader needs first.** For a README, that is the install command. For an API ref, that is the endpoint signature. For an architecture doc, that is the component map.
-2. **Use the project's actual names.** If the function is called `createSession`, the doc says `createSession`, not "the session creation method."
-3. **Include code examples from the tests.** Adapt real test patterns into minimal examples. Do not invent usage patterns that no test exercises.
-4. **State prerequisites before instructions.** If a step requires Node 18+, say so before the command that fails without it.
-5. **Write short sentences for instructions.** One action per sentence. "Run `npm install`. Start the dev server with `npm run dev`. Open `http://localhost:3000`."
-
----
-
-## Step 4: De-slopify Pass
-
-Run the full de-slopify procedure from [Writing.md](../Writing.md):
-
-1. Search draft for every banned pattern (emdash overuse, "here's why", "let's dive in", "at its core", "it's worth noting", "this ensures", "in order to", "leverage", "robust/seamless/powerful").
-2. Apply the fix for each match.
-3. Check opening sentences of every section: if it could appear in any project's docs unchanged, rewrite it.
-4. Check for three or more consecutive paragraphs starting with the same word.
-5. Verify "you" is not used more than twice per section outside tutorials.
-
----
-
-## Step 5: Verify
-
-### 5.1: Verify symbols
-
-For every function name, class name, config key, and command in the draft:
+Run examples only when safe and reasonably scoped:
 
 ```bash
-rg "<symbol_name>" --type-add 'src:*.{ts,js,py,go,rs,rb,java}' -t src
+pnpm test
+cargo test
+go test ./...
+pytest
 ```
 
-If a symbol is not found, fix the draft or mark it explicitly.
+Do not run deploy, publish, migration, delete, or production commands unless explicitly authorized.
 
-### 5.2: Verify code examples
+If verification cannot be run, write:
 
-For each code example in the draft:
-- Confirm the import paths are valid.
-- Confirm the function signatures match (parameter names, types, return types).
-- Confirm the example does not use deprecated APIs.
+```markdown
+Examples were checked against source references but not executed in this pass.
+```
 
-### 5.3: Verify file paths
+## 6. De-Slopify
 
-For every file path referenced in the draft:
+Apply `../Writing.md`:
+
+- Remove filler and banned phrases.
+- Replace hype with behavior.
+- Delete unsupported claims.
+- Prefer active voice.
+- Keep the doc skimmable.
+- Preserve project terminology.
+
+Before finalizing, search the draft for banned patterns:
 
 ```bash
-rg --files | rg ^<path>$
+rg -n "Let's dive in|Here's why|At its core|It's worth noting|robust|seamless|powerful|It's not .* it's" path/to/doc.md
 ```
 
-### 5.4: Check links
+## 7. Place The Doc
 
-For every link in the draft, verify the target exists (for internal links) or is
-reachable (for external links, if network is available).
+Follow existing structure:
 
-### 5.5: Run quality gates
+- If similar docs exist, add the new doc beside them.
+- If the README already routes docs, add a link.
+- If docs have an index, update it.
+- If generated docs exist, avoid editing generated output unless that is the repo's convention.
 
-Apply all four gates from [Writing.md](../Writing.md): Accuracy, Completeness,
-Structure, De-slopify. Fix any failures before delivering.
+When unsure, prefer one new focused doc plus a README link.
 
----
+## 8. Final Check
 
-## Step 6: Deliver
+Confirm:
 
-Present the finished documentation. Include:
+- The doc answers the user request.
+- Commands, paths, env vars, APIs, and symbols are backed by evidence.
+- Links resolve.
+- Unverified examples are marked.
+- No stale old section contradicts the new content.
 
-1. The doc content (written to file or presented inline).
-2. Verification notes: any claims that could not be fully verified, with what evidence would confirm them.
-3. Suggested file location if writing a new file.
-4. If this doc was from an audit fix list, note which audit item it resolves.
+Final response should name the files changed and evidence checked.
