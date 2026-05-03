@@ -84,9 +84,19 @@ command.
 Publishing is tag-driven through GitHub Actions and npm trusted publishing.
 There is no npm token in this repo.
 
-One-time npm setup: on npmjs.com, add a trusted publisher for
-`@benvenker/philip` using GitHub Actions, repository `benvenker/philip`, and
-workflow `.github/workflows/publish.yml`.
+First-time npm setup is different from later releases because npm requires a
+package to exist before trusted publishing can be configured.
+
+Bootstrap the package once, then configure trusted publishing:
+
+```bash
+npm publish --access public
+```
+
+Then on npmjs.com, add a trusted publisher for `@benvenker/philip` using GitHub
+Actions, repository `benvenker/philip`, and workflow `.github/workflows/publish.yml`.
+
+After that, future releases are tag-driven and tokenless.
 
 Before cutting a release:
 
