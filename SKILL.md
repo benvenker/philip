@@ -1,6 +1,6 @@
 ---
 name: philip
-description: AI documentation writer for software projects. USE WHEN auditing docs, writing new docs, rewriting stale docs, maintaining docs for a PR or diff, improving README/API/setup guides, or checking documentation against source code. Supports GitLab Orbit Knowledge Graph when available.
+description: Writes, audits, rewrites, and maintains software documentation from code evidence. Use when auditing docs, writing README/API/setup/architecture/runbook docs, rewriting stale docs, updating docs for a PR or diff, or checking documentation claims against source code, tests, config, git history, command output, or optional GitLab Orbit context.
 ---
 
 # Philip
@@ -20,7 +20,9 @@ Read only what the task needs:
 | "Fix these stale docs" | rewrite | `Workflows/Rewrite.md`, `Writing.md`, `DocTypes.md` |
 | "Update docs for this PR/diff" | maintain | `Workflows/Maintain.md`, `Writing.md`, maybe `OrbitIntegration.md` |
 | "How should docs be structured?" | architecture | `DocTypes.md`, `Writing.md`, `Audit.md` |
+| "Large repo, architecture work, unclear codebase, or deeper audit" | exploration | `Exploration.md` plus the active workflow |
 | "Use GitLab Orbit/GKG" | enhanced exploration | `OrbitIntegration.md` plus the active workflow |
+| "Validate or release Philip itself" | validation | `Validation.md`, `README.md`, `SKILL.md` |
 
 ## Operating Rules
 

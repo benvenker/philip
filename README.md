@@ -20,28 +20,95 @@ Core rule: every claim in generated docs must trace to local evidence: source co
 Install Philip by placing the full directory in a skill location. Do not copy
 only `SKILL.md`; Philip uses the root reference files and `Workflows/`.
 
+### From npm
+
+After the package is published, install the helper CLI and copy Philip into a
+skill location:
+
 ```bash
-# Preferred global agent skills directory
+npm install -g @benvenker/philip
+philip install
+```
+
+For a project-local install:
+
+```bash
+npx @benvenker/philip install --project
+```
+
+The installer writes the portable skill directory to `~/.agents/skills/philip`
+by default. It also supports `--target ~/.claude/skills`, `--target ~/.cursor/skills`,
+`--force`, and `--dry-run`.
+
+### Manual install
+
+Recommended shared locations:
+
+```bash
+# User-level, shared by Agent Skills clients that support the common path
 mkdir -p ~/.agents/skills
 cp -R philip ~/.agents/skills/philip
 
-# Claude Code
+# Project-level, shared with a repository
+mkdir -p .agents/skills
+cp -R philip .agents/skills/philip
+```
+
+Agent-specific fallbacks:
+
+```bash
+# Claude Code fallback
 mkdir -p ~/.claude/skills
 cp -R philip ~/.claude/skills/philip
 
-# Cursor
+# Cursor fallback
 mkdir -p ~/.cursor/skills
 cp -R philip ~/.cursor/skills/philip
 
-# Codex
-mkdir -p ~/.codex/skills
-cp -R philip ~/.codex/skills/philip
+# GitHub Copilot project fallback
+mkdir -p .github/skills
+cp -R philip .github/skills/philip
 ```
 
-For a project-shared skill, commit it under:
+For broader reuse beyond one machine or one repo, package Philip as a plugin
+for the target agent ecosystem. Keep the portable skill directory usable on its
+own; plugin metadata should not become required for normal use.
+
+## Publishing
+
+This repo can publish the portable skill as `@benvenker/philip` on npm. The
+package includes the skill files and the explicit `philip` installer CLI; it
+does not run a `postinstall` hook or write into user skill folders without a
+command.
+
+Publishing is tag-driven through GitHub Actions and npm trusted publishing.
+There is no npm token in this repo.
+
+One-time npm setup: on npmjs.com, add a trusted publisher for
+`@benvenker/philip` using GitHub Actions, repository `benvenker/philip`, and
+workflow `.github/workflows/publish.yml`.
+
+Before cutting a release:
 
 ```bash
-.cursor/skills/philip/
+npm run check
+npm pack --dry-run
+```
+
+To publish a release:
+
+```bash
+npm version patch   # or minor / major
+git push origin main --follow-tags
+```
+
+The pushed `vX.Y.Z` tag checks that the tag matches `package.json`, publishes
+that version to npm, and creates the GitHub Release marked as latest.
+
+After publishing, smoke-test the public package from a temporary directory:
+
+```bash
+npx @benvenker/philip install --dry-run
 ```
 
 Expected structure:
@@ -52,7 +119,9 @@ philip/
   Audit.md
   Writing.md
   DocTypes.md
+  Exploration.md
   OrbitIntegration.md
+  Validation.md
   Workflows/
     Audit.md
     Write.md
@@ -116,6 +185,11 @@ Philip reads the current diff, classifies user-visible changes, finds affected d
 
 This is the mode for PRs and merge requests.
 
+## Validation
+
+Use `Validation.md` before publishing changes to Philip itself. It covers skill
+structure, portability, forward-test prompts, and output checks.
+
 ## Optional GitLab Orbit Context
 
 Philip does not set up, configure, or require GitLab Orbit. If the user's
@@ -136,7 +210,7 @@ Do not ask users to create GitLab tokens or enable Orbit as part of using this s
 
 ## Writing Standards
 
-Philip bans common AI tells: overused em dash constructions, "It's not X it's Y", "Here's why", "Let's dive in", "At its core...", "It's worth noting...", and generic praise words like "robust", "seamless", and "powerful".
+Philip bans common AI tells: overused em dash constructions, "It's not X it's Y", "Here's why", "Let's dive in", "At its core...", "It's worth noting...", marketing adjectives, copula padding like "serves as", vague attribution, forced triples, and generic chatbot conclusions.
 
 The writing style is practical:
 
