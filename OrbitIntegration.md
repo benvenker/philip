@@ -1,44 +1,47 @@
 # GitLab Orbit Integration
 
-Philip works without Orbit, but Orbit makes exploration faster and harder to fake. Use it when the repo is connected to GitLab Orbit or the GitLab Knowledge Graph.
+Philip works without Orbit. Use Orbit only when the user's project already has GitLab Orbit or GitLab Knowledge Graph context available.
 
 Orbit exposes graph-backed project knowledge through GitLab's API. Philip uses it for file ownership, cross-file dependencies, merge request history, undocumented hotspots, security context, and narrative summaries for complex areas.
 
+## Boundaries
+
+- Do not set up Orbit.
+- Do not ask the user to create GitLab tokens.
+- Do not change GitLab feature flags, project settings, or indexing configuration.
+- Do not block documentation work when Orbit is unavailable.
+- Treat Orbit as read-only supporting evidence. Local repo evidence remains the default.
+
 ## Detection
 
-Default variables:
+At the start of a workflow, only check whether Orbit context is already present.
+If the environment does not already contain the required URL/token context, skip
+Orbit entirely and continue with `rg`, filesystem search, and git history.
 
 ```bash
-GITLAB_URL="${GITLAB_URL:-https://gitlab.com}"
-PROJECT_ID="${PROJECT_ID:-$(basename "$(git rev-parse --show-toplevel)")}"
+printenv GITLAB_TOKEN >/dev/null || printenv PRIVATE_TOKEN >/dev/null || echo "Orbit unavailable; use local evidence."
 ```
 
-Check for a token:
-
-```bash
-printenv GITLAB_TOKEN
-```
-
-Check Orbit status:
+If a token is already present, a status check can confirm availability:
 
 ```bash
 curl --fail --silent \
-  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-  "$GITLAB_URL/api/v4/orbit/status"
+  --header "PRIVATE-TOKEN: ${GITLAB_TOKEN:-$PRIVATE_TOKEN}" \
+  "${GITLAB_URL:-https://gitlab.com}/api/v4/orbit/status"
 ```
 
-If status fails because the endpoint is missing, token is absent, or the project is not indexed, fall back to `rg`, `git log`, and filesystem inventory. Do not block documentation work on Orbit.
+If status fails because the endpoint is missing, token is absent, or the project is not indexed, fall back to local evidence. Do not retry or turn the workflow into Orbit setup.
 
 ## Query Endpoint
 
-All graph queries go to:
+When Orbit is already available, graph queries go to:
 
 ```bash
 curl --fail --silent \
-  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  --header "PRIVATE-TOKEN: ${GITLAB_TOKEN:-$PRIVATE_TOKEN}" \
   --header "Content-Type: application/json" \
   --data @query.json \
-  "$GITLAB_URL/api/v4/orbit/query"
+  "${GITLAB_URL:-https://gitlab.com}/api/v4/orbit/query"
 ```
 
 Use `response_format: "llm"` when the result will feed a narrative section, audit summary, or architecture explanation. Use structured formats when building tables or evidence maps.

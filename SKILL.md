@@ -40,7 +40,7 @@ Before deep work, detect:
 - Project language and framework with `rg --files -g 'package.json' -g 'pyproject.toml' -g 'Cargo.toml' -g 'go.mod' -g 'Gemfile' -g 'pom.xml' -g 'build.gradle*'`.
 - Documentation surface with `rg --files -g '*.md' -g '*.mdx' -g 'docs/**' -g 'README*' -g 'CHANGELOG*'`.
 - Public interfaces with `rg --files -g '*openapi*' -g '*swagger*' -g 'proto/**' -g 'graphql/**' -g 'src/**'`.
-- Orbit availability with `printenv GITLAB_TOKEN` and `GET /api/v4/orbit/status`.
+- Whether Orbit context is already available in the user's environment. Do not configure Orbit or ask the user to create credentials.
 
 ## Output Standards
 

@@ -116,49 +116,14 @@ Philip reads the current diff, classifies user-visible changes, finds affected d
 
 This is the mode for PRs and merge requests.
 
-## GitLab Orbit Setup
+## Optional GitLab Orbit Context
 
-Philip has native GitLab Orbit and GitLab Knowledge Graph support. Orbit is optional; without it, Philip falls back to local `rg`, filesystem, and git history.
+Philip does not set up, configure, or require GitLab Orbit. If the user's
+project already has Orbit available in their agent environment, Philip can use
+it as an additional read-only context source. Otherwise, Philip uses local
+filesystem search, `rg`, and git history.
 
-Set credentials:
-
-```bash
-export GITLAB_TOKEN="glpat-..."
-export GITLAB_URL="https://gitlab.com"
-export PROJECT_ID="group/project"
-```
-
-Check Orbit:
-
-```bash
-curl --fail --silent \
-  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-  "$GITLAB_URL/api/v4/orbit/status"
-```
-
-Query Orbit:
-
-```bash
-cat > query.json <<'JSON'
-{
-  "project_id": "group/project",
-  "query_type": "search",
-  "domain": "source_code",
-  "query": "undocumented public CLI commands",
-  "node_types": ["Definition", "File"],
-  "limit": 20,
-  "response_format": "llm"
-}
-JSON
-
-curl --fail --silent \
-  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-  --header "Content-Type: application/json" \
-  --data @query.json \
-  "$GITLAB_URL/api/v4/orbit/query"
-```
-
-Philip uses Orbit for:
+When already available, Orbit can help with:
 
 - File ownership.
 - Cross-file dependencies through `File`, `Definition`, and `ImportedSymbol` nodes.
@@ -166,6 +131,8 @@ Philip uses Orbit for:
 - Undocumented hotspots.
 - Security context.
 - Graph paths between docs and code.
+
+Do not ask users to create GitLab tokens or enable Orbit as part of using this skill.
 
 ## Writing Standards
 
