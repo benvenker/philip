@@ -35,6 +35,27 @@ Prefer concrete nouns and verbs:
 - Bad: "This powerful workflow seamlessly handles configuration."
 - Good: "The loader reads `.env`, validates required keys, and fails before connecting to the database."
 
+## AI Residue Sweep
+
+After accuracy is settled, read the prose manually. Regex and search checks are
+detection aids, not substitutes for judgment. Rewrite any sentence that carries
+one of these AI-writing artifacts:
+
+- Significance inflation: "testament", "pivotal", "underscores", "broader landscape", "transformative", "vital role", or "focal point".
+- Promotional verbs: "showcases", "boasts", "enhances", "fosters", "elevates", or "empowers" unless the doc proves the mechanism.
+- Copula avoidance: "serves as", "stands as", or "functions as" when "is" or "has" is clearer.
+- Present-participle padding: trailing phrases like "enabling", "ensuring", "highlighting", "reflecting", or "contributing to" that add fake depth.
+- Vague attribution: "industry observers", "experts say", or "best practices recommend" without a named source or local evidence.
+- Forced triples: lists of three adjectives or benefits that exist for rhythm instead of information.
+- Synonym cycling: switching names for the same thing to avoid repetition. Use the project term consistently.
+- False ranges: "from X to Y" when X and Y are not a meaningful scale.
+- Chatbot residue: "Of course", "I hope this helps", "Let me know", "Great question", or "Here is an overview".
+- Generic conclusions: "the future looks bright", "this is a step forward", or "exciting times ahead".
+- Mechanical formatting: emoji bullets, excessive bold labels, and list items that should be one sentence.
+
+Do not sacrifice technical accuracy for style. Preserve code blocks, commands,
+paths, API names, error messages, and quoted source text.
+
 ## Evidence Rules
 
 Every claim must trace to one of:
@@ -188,6 +209,12 @@ Before finalizing docs:
 5. Remove banned patterns.
 6. Confirm the doc has a next action for the reader.
 7. Confirm stale claims were deleted, not hidden under new prose.
+
+Use this broad search as a first pass, then read manually:
+
+```bash
+rg -n "Let's dive in|Let's explore|Here's why|At its core|Fundamentally|It's worth noting|Importantly|In order to|robust|seamless|powerful|pivotal|landscape|underscores|showcases|boasts|serves as|stands as|delve|foster|vibrant|testament|It's not .* it's|not only .* but|I hope this helps|Let me know|Great question" path/to/doc.md
+```
 
 ## Final Response
 

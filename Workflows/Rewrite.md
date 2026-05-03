@@ -2,7 +2,7 @@
 
 Use this workflow when the user asks Philip to fix stale docs, improve existing docs, update a guide, or make a doc match current code.
 
-Load with `../Writing.md`, `../DocTypes.md`, and `../Audit.md` when findings already exist.
+Load with `../Writing.md`, `../DocTypes.md`, `../Exploration.md`, and `../Audit.md` when findings already exist.
 
 ## 0. Identify The Rewrite Contract
 
@@ -16,6 +16,10 @@ Determine:
 Default: preserve useful structure and rewrite inaccurate sections. Do not rewrite the entire doc to leave your fingerprints on it.
 
 ## 1. Read Existing Docs
+
+Use Quick exploration from `../Exploration.md` for one named stale claim,
+command, symbol, or section. Use Standard exploration for full-doc rewrites or
+when the stale behavior crosses setup, API, architecture, or operations docs.
 
 Inventory the doc before changing it:
 
@@ -150,11 +154,13 @@ pytest
 For markdown quality:
 
 ```bash
-rg -n "Let's dive in|Here's why|At its core|It's worth noting|robust|seamless|powerful|It's not .* it's" path/to/doc.md
+rg -n "Let's dive in|Let's explore|Here's why|At its core|Fundamentally|It's worth noting|Importantly|In order to|robust|seamless|powerful|pivotal|landscape|underscores|showcases|boasts|serves as|stands as|delve|foster|vibrant|testament|It's not .* it's|not only .* but|I hope this helps|Let me know|Great question" path/to/doc.md
 rg -n "\]\([^)]*\)" path/to/doc.md
 ```
 
-Follow links manually or with the repo's docs checker if one exists.
+Follow links manually or with the repo's docs checker if one exists. Search is
+only a detection aid; read the rewritten sections manually to catch subtle
+AI-residue, unsupported claims, and contradictions the regex cannot see.
 
 ## 7. Final Response
 

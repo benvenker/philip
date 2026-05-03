@@ -2,7 +2,7 @@
 
 Use this workflow when the user asks Philip to write new documentation for a feature, module, workflow, API, CLI, setup process, architecture area, or project.
 
-Load with `../Writing.md`, `../DocTypes.md`, and `../OrbitIntegration.md` if Orbit is available.
+Load with `../Writing.md`, `../DocTypes.md`, `../Exploration.md`, and `../OrbitIntegration.md` if Orbit is available.
 
 ## 0. Define The Target
 
@@ -18,6 +18,11 @@ Capture:
 If the doc type is unclear, use `../DocTypes.md` to choose the smallest useful type.
 
 ## 1. Find Evidence
+
+Use Quick exploration from `../Exploration.md` when the user names a specific
+path, module, or symbol. Use Standard exploration when the request is broad,
+the destination doc is unclear, or the doc affects README, setup, API,
+architecture, or runbook material.
 
 Start from user-provided paths. If none are given, search:
 
@@ -138,10 +143,12 @@ Apply `../Writing.md`:
 - Keep the doc skimmable.
 - Preserve project terminology.
 
-Before finalizing, search the draft for banned patterns:
+Before finalizing, search the draft for banned patterns. Treat this as a
+detection aid; still read the doc manually for accuracy, stale claims, and
+subtle AI residue:
 
 ```bash
-rg -n "Let's dive in|Here's why|At its core|It's worth noting|robust|seamless|powerful|It's not .* it's" path/to/doc.md
+rg -n "Let's dive in|Let's explore|Here's why|At its core|Fundamentally|It's worth noting|Importantly|In order to|robust|seamless|powerful|pivotal|landscape|underscores|showcases|boasts|serves as|stands as|delve|foster|vibrant|testament|It's not .* it's|not only .* but|I hope this helps|Let me know|Great question" path/to/doc.md
 ```
 
 ## 7. Place The Doc
