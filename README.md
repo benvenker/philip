@@ -13,7 +13,7 @@ Philip supports four modes:
 | `rewrite` | "Fix these stale docs." | Updated existing docs that match current code. |
 | `maintain` | "Update docs for this PR." | Surgical doc patches for the current diff. |
 
-Core rule: every claim in generated docs must trace to source code, tests, config, git history, command output, or GitLab Orbit evidence.
+Core rule: every claim in generated docs must trace to local evidence: source code, tests, config, git history, or command output. If GitLab Orbit is available, Philip can use it as additional evidence, but Orbit is never required.
 
 ## Install
 
