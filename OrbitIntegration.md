@@ -188,9 +188,9 @@ When Orbit is unavailable, replicate these queries using local tools:
 
 | Orbit query | Fallback |
 |---|---|
-| File ownership | `git log --format='%an' -- <path> \| sort \| uniq -c \| sort -rn \| head -5` |
+| File ownership | `git log --format='%an' -- <path> \| sort \| uniq -c \| sort -rn` |
 | Dependency traversal | `rg "import.*from.*<module>" --type-add 'src:*.{ts,js,py,go,rs}' -t src` |
 | MR history per file | `git log --oneline --since="90 days ago" -- <path>` |
-| Undocumented hotspots | `git log --format='' --name-only --since="90 days ago" \| sort \| uniq -c \| sort -rn \| head -20`, then cross-reference against `docs/` |
+| Undocumented hotspots | `git log --format='' --name-only --since="90 days ago" \| sort \| uniq -c \| sort -rn`, then cross-reference against `docs/` |
 | Security context | Not available without Orbit; note the gap in the audit report |
 | Definition discovery | `rg "^(export\s+)?(function\|class\|const\|def\|fn\|pub fn)" src/` |

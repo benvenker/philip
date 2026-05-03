@@ -32,7 +32,7 @@ Read the relevant source code thoroughly before writing a single sentence.
 ```bash
 # Find files related to the target
 rg -l "<target_name>" --type-add 'src:*.{ts,js,py,go,rs,rb,java}' -t src
-find . -path "*<target_name>*" -not -path './node_modules/*' -not -path './.git/*'
+rg --files | rg '<target_name>'
 ```
 
 ### 2.2: Read entry points and public API
@@ -49,7 +49,7 @@ Read the main file(s) for the target. Focus on:
 ```bash
 # Find test files for the target
 rg -l "<target_name>" --type-add 'test:*.{test,spec}.{ts,js,py}' -t test
-find . -path "*test*" -name "*<target_name>*"
+rg --files -g *test* -g *spec* | rg <target_name>
 ```
 
 Tests show how the code is actually used. Extract patterns for examples.
@@ -134,7 +134,7 @@ For each code example in the draft:
 For every file path referenced in the draft:
 
 ```bash
-ls <path>
+rg --files | rg ^<path>$
 ```
 
 ### 5.4: Check links
