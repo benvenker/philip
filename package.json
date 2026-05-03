@@ -1,0 +1,47 @@
+{
+  "name": "@benvenker/philip",
+  "version": "0.1.0",
+  "description": "Portable Agent Skill for writing, auditing, rewriting, and maintaining software documentation from code evidence.",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benvenker/philip.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "philip": "bin/philip.js"
+  },
+  "files": [
+    "SKILL.md",
+    "Audit.md",
+    "Writing.md",
+    "DocTypes.md",
+    "Exploration.md",
+    "OrbitIntegration.md",
+    "Validation.md",
+    "Workflows/",
+    "bin/",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node bin/philip.js install --dry-run && npm pack --dry-run",
+    "pack:check": "npm pack --dry-run",
+    "install:skill": "node bin/philip.js install"
+  },
+  "keywords": [
+    "agent-skill",
+    "ai-documentation",
+    "documentation",
+    "cursor",
+    "claude",
+    "codex"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": false,
+  "engines": {
+    "node": ">=18"
+  }
+}
