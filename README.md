@@ -28,6 +28,9 @@ Use the open Agent Skills installer:
 npx skills@latest add benvenker/philip
 ```
 
+This is the best path for most users. It finds the `philip` skill from this
+repo and guides the user through the target agent and install method.
+
 For a global install:
 
 ```bash
@@ -40,6 +43,12 @@ For a specific agent:
 npx skills@latest add benvenker/philip -a cursor
 npx skills@latest add benvenker/philip -a codex
 npx skills@latest add benvenker/philip -a claude-code
+```
+
+For a non-interactive global install to one agent:
+
+```bash
+npx skills@latest add benvenker/philip -g -a cursor -y
 ```
 
 To confirm Philip is discoverable before installing:
@@ -114,15 +123,18 @@ own; plugin metadata should not become required for normal use.
 ## Publishing
 
 This repo can publish the portable skill as `@benvenker/philip` on npm. The
-package includes the skill files and the explicit `philip` installer CLI; it
-does not run a `postinstall` hook or write into user skill folders without a
-command.
+package includes the skill files, the explicit `philip` installer CLI, and a
+`postinstall` notice that tells npm users to run `philip install`. It does not
+write into user skill folders during npm install unless `PHILIP_AUTO_INSTALL=1`
+is set.
 
 Publishing is tag-driven through GitHub Actions and npm trusted publishing.
 There is no npm token in this repo.
 
 First-time npm setup is different from later releases because npm requires a
-package to exist before trusted publishing can be configured.
+package to exist before trusted publishing can be configured. `@benvenker/philip`
+has already been bootstrapped; use this section only if the package is deleted,
+renamed, or moved to a new scope.
 
 Bootstrap the package once, then configure trusted publishing:
 

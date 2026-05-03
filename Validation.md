@@ -75,7 +75,7 @@ Before publishing the npm package:
 - Confirm `package.json` uses the portable package files and does not rely on `postinstall` to copy files into user skill directories without explicit opt-in.
 - For the first release only, confirm `@benvenker/philip` exists on npm. If it does not, publish once manually with `npm publish --access public`; npm requires an existing package before trusted publishing can be configured.
 - Confirm npm trusted publishing is configured for package `@benvenker/philip`, repository `benvenker/philip`, and workflow `.github/workflows/publish.yml`.
-- Run `npm pack --dry-run` and inspect the file list for only the intended skill files, workflows, README, package metadata, and installer CLI.
+- Run `npm pack --dry-run` and inspect the file list for only the intended skill files, workflows, README, package metadata, installer CLI, and postinstall guidance script.
 - Run `npx skills@latest add benvenker/philip --list` to confirm the public repo is discoverable by the open Agent Skills installer.
 - Run `node bin/philip.js install --dry-run` to confirm the default target is `~/.agents/skills/philip`.
 - Run `node bin/philip.js install --project --dry-run` to confirm the project target is `.agents/skills/philip`.
