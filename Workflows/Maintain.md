@@ -2,9 +2,13 @@
 
 Use this workflow when the user asks Philip to update docs for a diff, branch, pull request, merge request, or recent change.
 
-Load with `../Writing.md`, `../DocTypes.md`, and `../OrbitIntegration.md` if Orbit is available.
+Load with `../Writing.md`, `../DocTypes.md`, `../Exploration.md`, and `../OrbitIntegration.md` if Orbit is available.
 
 Maintain mode is surgical. Patch affected sections. Do not turn a one-flag change into a README renovation.
+
+Use diff-scoped Quick exploration from `../Exploration.md`: read the changed
+files, extract changed symbols, search docs for those exact names, and stop
+when doc impact is proven absent or the affected sections are patched.
 
 ## 0. Determine The Diff
 
@@ -71,6 +75,10 @@ Extract changed identifiers from the diff:
 ```bash
 git diff origin/main...HEAD -- '*.ts' '*.tsx' '*.js' '*.py' '*.rs' '*.go' '*.rb' '*.java' '*.kt' '*.swift'
 ```
+
+Search changed symbols, paths, commands, flags, and env vars exactly before
+making broader edits. Preserve maintain mode's small patch surface unless the
+diff proves the docs need a larger Rewrite pass.
 
 For Orbit-enabled repos:
 

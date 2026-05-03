@@ -2,7 +2,7 @@
 
 Use this workflow when the user asks what is wrong with the docs, requests a documentation health check, or wants gaps ranked by severity.
 
-Load with `../Audit.md`, `../DocTypes.md`, and `../OrbitIntegration.md` if Orbit is available.
+Load with `../Audit.md`, `../DocTypes.md`, `../Exploration.md`, and `../OrbitIntegration.md` if Orbit is available.
 
 ## 0. Scope
 
@@ -16,6 +16,10 @@ Clarify only when scope changes the work:
 If the user says "audit docs" with no scope, audit the whole documentation surface.
 
 ## 1. Explore Project Shape
+
+Use Standard exploration from `../Exploration.md` by default. Escalate to Deep
+exploration for whole-repo audits, architecture-heavy audits, large repos, or
+systems where public surfaces are unclear.
 
 Identify languages, frameworks, interfaces, and operational surfaces:
 
