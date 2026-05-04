@@ -74,8 +74,9 @@ Return a concise map with:
 Do not write docs. Return evidence with file paths and symbols.
 ```
 
-The parent agent must still verify high-impact claims locally before
-publication.
+Exploration subagents provide leads, not publishable truth. The parent agent
+must locally verify high-impact claims before publication or label them with
+the appropriate verification state, such as `not found` or `partially verified`.
 
 ## Web Research Boundary
 

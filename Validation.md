@@ -50,11 +50,34 @@ Check this README for unsupported claims and AI filler.
 Before accepting a forward-test output:
 
 - Findings cite evidence by file path, symbol, command output, git commit, or optional Orbit node.
+- Audit forward-test outputs pass `node scripts/audit-report-lint.mjs path/to/audit.md`, or the final response discloses the structural failures and why they remain.
 - Commands and examples are verified or explicitly marked unverified.
 - Unsupported claims are removed, corrected, or labeled unknown.
 - Public APIs, env vars, paths, and config names match source evidence.
 - The AI-residue pass from `Writing.md` has been run and followed by manual reading.
 - Final response says what changed, what was checked, what was not verified, and any remaining risk.
+
+## Audit Linter Regression Checks
+
+Run the dependency-free audit linter fixture suite after changing `Audit.md`,
+`Workflows/Audit.md`, `scripts/audit-report-lint.mjs`, or audit report
+fixtures:
+
+```bash
+npm run test:lint-audit
+```
+
+The fixture suite must include:
+
+- A passing audit with required sections, valid finding fields, valid verification labels, coverage map, unknowns, and Orbit fallback disclosure.
+- Failing audits for missing coverage map, missing finding fields, invalid verification label, and plan checklist content before preserved audit sections.
+
+Also smoke-test both invocation paths when possible:
+
+```bash
+node scripts/audit-report-lint.mjs fixtures/audit-lint/pass.md
+node bin/philip.js lint-audit fixtures/audit-lint/pass.md
+```
 
 ## Optional Tooling
 
@@ -75,7 +98,7 @@ Before publishing the npm package:
 - Confirm `package.json` uses the portable package files and does not rely on `postinstall` to copy files into user skill directories without explicit opt-in.
 - For the first release only, confirm `@benvenker/philip` exists on npm. If it does not, publish once manually with `npm publish --access public`; npm requires an existing package before trusted publishing can be configured.
 - Confirm npm trusted publishing is configured for package `@benvenker/philip`, repository `benvenker/philip`, and workflow `.github/workflows/publish.yml`.
-- Run `npm pack --dry-run` and inspect the file list for only the intended skill files, workflows, README, package metadata, installer CLI, and postinstall guidance script.
+- Run `npm pack --dry-run` and inspect the file list for only the intended skill files, workflows, README, fixtures, package metadata, installer CLI, validation scripts, and postinstall guidance script.
 - Run `npx skills@latest add benvenker/philip --list` to confirm the public repo is discoverable by the open Agent Skills installer.
 - Run `node bin/philip.js install --dry-run` to confirm the default target is `~/.agents/skills/philip`.
 - Run `node bin/philip.js install --project --dry-run` to confirm the project target is `.agents/skills/philip`.

@@ -186,6 +186,10 @@ philip/
     Write.md
     Rewrite.md
     Maintain.md
+  fixtures/
+    audit-lint/
+  scripts/
+    audit-report-lint.mjs
   README.md
 ```
 
@@ -210,6 +214,28 @@ Use Philip to update docs for the current PR diff.
 ```
 
 Philip starts by routing through `SKILL.md`, then loads only the needed workflow and reference files. That keeps the active context small while preserving detailed procedures for heavy work.
+
+### Audit Report Linter
+
+Philip includes a dependency-free structure linter for audit reports:
+
+```bash
+philip lint-audit path/to/audit.md
+philip lint-audit path/to/plan.md --format plan
+philip lint-audit - --json
+```
+
+Installed-skill contexts can invoke the script directly when the `philip` CLI is
+not on `PATH`:
+
+```bash
+node ~/.agents/skills/philip/scripts/audit-report-lint.mjs path/to/audit.md
+node scripts/audit-report-lint.mjs --format audit -
+```
+
+The linter checks structure only: required sections, finding fields,
+verification labels, coverage/scope disclosure, Orbit disclosure, and plan
+ordering. It does not verify whether cited code evidence is factually true.
 
 ## Modes
 

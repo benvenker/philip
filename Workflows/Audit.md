@@ -148,11 +148,20 @@ Write a severity-ranked audit:
 ## Findings
 ### Critical
 - [Title]
+  - Problem: [What is wrong.]
   - Evidence: `path`, symbol, command output, git commit, or Orbit node.
   - Impact: [Specific user harm.]
   - Fix: [Specific doc change.]
+  - Verification: [verified | not run | not found | partially verified] - [What was checked.]
+  - Confidence: [High | Medium | Low.]
 
 ### High
+...
+
+### Medium
+...
+
+### Low
 ...
 
 ## Coverage Map
@@ -164,16 +173,62 @@ Write a severity-ranked audit:
 
 ## Unknowns
 - [What was not verified.]
+
+## Verification Notes
+- [Commands run, files checked, or checks intentionally not run.]
+- [Orbit used, Orbit unavailable, or Orbit intentionally not checked.]
 ```
 
 Make the report useful enough that another agent can implement the fixes without rediscovering the repo.
 
-## 7. Quality Check
+If the user asks for a plan artifact instead of a plain report, preserve the Philip audit sections first: Executive Summary, Findings, Coverage Map, Recommended Plan, Unknowns, and Verification Notes. Put implementation checklists, todos, owner assignments, or task graphs after those sections.
+
+## 7. Lint, Revise, Rerun
+
+Run the bundled audit structure validator before publishing the report:
+
+```bash
+node scripts/audit-report-lint.mjs path/to/audit.md
+```
+
+For installed-skill contexts, use the copied script from the Philip skill directory:
+
+```bash
+node ~/.agents/skills/philip/scripts/audit-report-lint.mjs path/to/audit.md
+```
+
+For stdin-based drafting:
+
+```bash
+node scripts/audit-report-lint.mjs --format audit -
+```
+
+For plan artifacts:
+
+```bash
+node scripts/audit-report-lint.mjs --format plan path/to/plan.md
+```
+
+Loop until structural errors are gone:
+
+1. Draft from evidence.
+2. Run the linter.
+3. Revise the report from actionable feedback.
+4. Rerun the linter.
+5. Publish only after remaining failures are either fixed or explicitly disclosed.
+
+Validation feedback is a drafting aid. It is not permission to invent evidence, upgrade confidence, remove unknowns, or suppress uncertainty. If the linter exposes a missing section and the evidence is unavailable, add the section and state the unknown plainly.
+
+## 8. Quality Check
 
 Before handing off:
 
 - Every finding has evidence.
+- Every finding includes Problem, Evidence, Impact, Fix, Verification, and Confidence.
+- Verification labels are `verified`, `not run`, `not found`, or `partially verified`.
+- The Coverage Map is honest about whole-repo versus sampled scope.
 - Severity is based on user harm.
 - Recommendations name target docs or sections.
 - Orbit use or fallback is disclosed.
+- `node scripts/audit-report-lint.mjs path/to/audit.md` passes, or structural failures are disclosed.
 - No filler phrases from `../Writing.md` remain.

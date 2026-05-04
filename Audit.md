@@ -84,10 +84,18 @@ Use severity based on user harm, not how annoyed Philip feels.
 
 | Severity | Meaning | Examples |
 | --- | --- | --- |
-| Critical | Blocks install, build, deploy, auth, data safety, or security-sensitive work. | Setup command no longer exists; docs tell users to disable auth; migration instructions lose data. |
-| High | Misleads users on common workflows or public contracts. | API docs show removed fields; CLI flags are stale; required env vars are missing. |
-| Medium | Causes avoidable confusion or incomplete work. | Architecture overview omits a major service; troubleshooting lacks known error recovery. |
-| Low | Polish, wording, organization, or minor discoverability issue. | Repeated content, weak link text, dated screenshots with no behavioral mismatch. |
+| Critical | Blocks install, build, deploy, auth, data safety, or security-sensitive work. | Setup command no longer exists; a missing prerequisite prevents first run; docs tell users to disable auth; migration instructions lose data. |
+| High | Misleads users on common workflows or public contracts. | CLI flags are stale; required env vars are missing; API docs show removed fields; command drift breaks a primary path. |
+| Medium | Causes avoidable confusion or incomplete work. | Architecture overview omits a major service; README points at stale paths but the workflow is recoverable; troubleshooting lacks known error recovery. |
+| Low | Polish, wording, organization, or minor discoverability issue. | Stale version references that do not change behavior; weak link text; dated screenshots with no behavioral mismatch. |
+
+Calibrate common documentation failures this way:
+
+- Stale paths are High when they block common setup or public API use, Medium when a nearby obvious path works, and Low when only examples or screenshots are affected.
+- Stale versions are High when they select incompatible tools or dependencies, Medium when they cause confusion about support, and Low when they are cosmetic release references.
+- Missing setup prerequisites are Critical if they block install or first run, High if they affect a common optional path, and Medium if they affect a narrow contributor workflow.
+- Command drift is Critical when no documented safe path remains, High when the main command is wrong, and Medium when a secondary command or flag changed.
+- Missing architecture coverage is High when it hides a public contract or operational boundary, Medium when it hides an internal subsystem maintainers need, and Low when it is a navigation issue.
 
 ## Audit Output
 
@@ -102,11 +110,20 @@ Use this structure unless the user asks for another format:
 ## Findings
 ### Critical
 - [Finding title]
+  - Problem: [What is wrong.]
   - Evidence: `path`, symbol, command, commit, or Orbit node.
   - Impact: [Who gets hurt and how.]
   - Fix: [Specific change.]
+  - Verification: [verified | not run | not found | partially verified] - [What was checked.]
+  - Confidence: [High | Medium | Low and why.]
 
 ### High
+...
+
+### Medium
+...
+
+### Low
 ...
 
 ## Coverage Map
@@ -118,6 +135,44 @@ Use this structure unless the user asks for another format:
 
 ## Unknowns
 - [Claims not verified and why.]
+
+## Verification Notes
+- [Commands run, files checked, or checks intentionally not run.]
+- [Orbit used, Orbit unavailable, or Orbit intentionally not checked.]
 ```
 
+### Required Finding Fields
+
+Every finding must include:
+
+- `Problem`: the precise documentation failure.
+- `Evidence`: file path, symbol, command output, git commit, generated schema, or optional Orbit node.
+- `Impact`: the user harm or maintenance risk.
+- `Fix`: the doc section, file, or new doc type to change.
+- `Verification`: one of the approved labels plus the check performed.
+- `Confidence`: High, Medium, or Low with a short reason when useful.
+
+Allowed verification labels:
+
+- `verified`: directly checked against local evidence, command output, git history, generated specs, or Orbit.
+- `not run`: a command or runtime check was not executed.
+- `not found`: expected evidence was searched for and not located.
+- `partially verified`: some supporting evidence was checked, but part of the claim remains unverified.
+
+### Scope Honesty
+
+Whole-repo audits must include a coverage map across both documentation types and public product surfaces: README/setup, API/reference, architecture, runbooks, troubleshooting, security, CLIs, routes, SDK exports, config, schemas, services, packages, workflows, or equivalents that apply to the repo.
+
+Sampled audits must explicitly say they were sampled in the Executive Summary, Coverage Map, or Verification Notes. Do not let a sample read like a whole-repo audit.
+
 No finding without evidence. No vague "improve docs" recommendations. The fix should name the doc section or new doc type needed.
+
+### Structure Linter
+
+Run the bundled structure linter while drafting audit reports:
+
+```bash
+node scripts/audit-report-lint.mjs path/to/audit.md
+```
+
+The linter checks report shape only. Passing it does not mean the code evidence is true, current, or complete.

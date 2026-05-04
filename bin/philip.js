@@ -5,6 +5,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 const skillName = "philip";
 const packageRoot = path.resolve(__dirname, "..");
@@ -17,6 +18,8 @@ const skillFiles = [
   "OrbitIntegration.md",
   "Validation.md",
   "Workflows",
+  "fixtures",
+  "scripts",
   "README.md",
 ];
 
@@ -25,6 +28,7 @@ function printHelp() {
 
 Usage:
   philip install [--user|--project|--target <dir>] [--force] [--dry-run]
+  philip lint-audit <file|-> [--json] [--format audit|plan|auto]
   philip help
 
 Targets:
@@ -35,11 +39,15 @@ Targets:
 Options:
   --force            Replace an existing Philip install
   --dry-run          Print the target without copying files
+  --json             Print lint results as JSON
+  --format <format>  Lint as audit, plan, or auto-detect (default: auto)
 
 Examples:
   philip install
   philip install --project
   philip install --target ~/.claude/skills
+  philip lint-audit docs/audit.md
+  philip lint-audit - --json --format plan
 `);
 }
 
@@ -50,6 +58,14 @@ function parseArgs(argv) {
     force: false,
     dryRun: false,
   };
+
+  if (options.command === "--help" || options.command === "-h") {
+    options.command = "help";
+  }
+
+  if (options.command === "lint-audit") {
+    return parseLintAuditArgs(argv.slice(1));
+  }
 
   for (let index = 1; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -74,6 +90,52 @@ function parseArgs(argv) {
     } else {
       throw new Error(`Unknown option: ${arg}`);
     }
+  }
+
+  return options;
+}
+
+function parseLintAuditArgs(argv) {
+  const options = {
+    command: "lint-audit",
+    file: null,
+    json: false,
+    format: "auto",
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+
+    if (arg === "--json") {
+      options.json = true;
+    } else if (arg === "--format") {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error("--format requires audit, plan, or auto");
+      }
+      options.format = value;
+      index += 1;
+    } else if (arg.startsWith("--format=")) {
+      options.format = arg.slice("--format=".length);
+    } else if (arg === "--help" || arg === "-h") {
+      options.command = "help";
+    } else if (!options.file) {
+      options.file = arg;
+    } else {
+      throw new Error(`Unexpected argument: ${arg}`);
+    }
+  }
+
+  if (options.command === "help") {
+    return options;
+  }
+
+  if (!["audit", "plan", "auto"].includes(options.format)) {
+    throw new Error("--format must be audit, plan, or auto");
+  }
+
+  if (!options.file) {
+    throw new Error("lint-audit requires a report file or '-' for stdin");
   }
 
   return options;
@@ -138,12 +200,43 @@ function install(options) {
   console.log(`Installed Philip to ${targetDir}`);
 }
 
+function lintAudit(options) {
+  const validator = path.join(packageRoot, "scripts", "audit-report-lint.mjs");
+  const args = [validator, "--format", options.format];
+
+  if (options.json) {
+    args.push("--json");
+  }
+
+  args.push(options.file);
+
+  const result = spawnSync(process.execPath, args, {
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (typeof result.status === "number") {
+    process.exitCode = result.status;
+    return;
+  }
+
+  process.exitCode = 1;
+}
+
 function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
 
     if (options.command === "help") {
       printHelp();
+      return;
+    }
+
+    if (options.command === "lint-audit") {
+      lintAudit(options);
       return;
     }
 

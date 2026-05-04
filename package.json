@@ -23,11 +23,13 @@
     "Validation.md",
     "Workflows/",
     "bin/",
+    "fixtures/",
     "scripts/",
     "README.md"
   ],
   "scripts": {
-    "check": "node bin/philip.js install --dry-run && npm pack --dry-run",
+    "check": "npm run test:lint-audit && node bin/philip.js install --dry-run && npm pack --dry-run",
+    "test:lint-audit": "node scripts/test-audit-report-lint.mjs",
     "pack:check": "npm pack --dry-run",
     "install:skill": "node bin/philip.js install",
     "postinstall": "node scripts/postinstall.js"
