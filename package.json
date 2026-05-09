@@ -32,7 +32,8 @@
     "test:lint-audit": "node scripts/test-audit-report-lint.mjs",
     "pack:check": "npm pack --dry-run",
     "install:skill": "node bin/philip.js install",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "prepare": "husky"
   },
   "keywords": [
     "agent-skill",
@@ -47,5 +48,8 @@
   "private": false,
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
