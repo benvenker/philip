@@ -1,5 +1,6 @@
 .worktrees/
 .tmp/
+.pi/
 node_modules/
 
 # bv (beads viewer) local config and caches
