@@ -29,7 +29,11 @@ function printHelp() {
 Usage:
   philip install [--user|--project|--target <dir>] [--force] [--dry-run]
   philip lint-audit <file|-> [--json] [--format audit|plan|auto]
+  philip diff
   philip help
+
+Commands:
+  diff              Write an Actionable diff JSON evidence packet to .philip/artifacts/{workstream}/philip-diff.json
 
 Targets:
   --user             Install to ~/.agents/skills/philip (default)
@@ -48,6 +52,7 @@ Examples:
   philip install --target ~/.claude/skills
   philip lint-audit docs/audit.md
   philip lint-audit - --json --format plan
+  philip diff
 `);
 }
 
@@ -65,6 +70,13 @@ function parseArgs(argv) {
 
   if (options.command === "lint-audit") {
     return parseLintAuditArgs(argv.slice(1));
+  }
+
+  if (options.command === "diff") {
+    return {
+      command: "diff",
+      args: argv.slice(1),
+    };
   }
 
   for (let index = 1; index < argv.length; index += 1) {
@@ -226,6 +238,25 @@ function lintAudit(options) {
   process.exitCode = 1;
 }
 
+function runDiff(options) {
+  const collector = path.join(packageRoot, "scripts", "collect-philip-diff.mjs");
+  const result = spawnSync(process.execPath, [collector, ...options.args], {
+    cwd: process.cwd(),
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (typeof result.status === "number") {
+    process.exitCode = result.status;
+    return;
+  }
+
+  process.exitCode = 1;
+}
+
 function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -237,6 +268,11 @@ function main() {
 
     if (options.command === "lint-audit") {
       lintAudit(options);
+      return;
+    }
+
+    if (options.command === "diff") {
+      runDiff(options);
       return;
     }
 

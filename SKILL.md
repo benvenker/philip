@@ -19,12 +19,15 @@ Read only what the task needs:
 | "Write docs for X" | write | `Workflows/Write.md`, `Writing.md`, `DocTypes.md`, maybe `OrbitIntegration.md` |
 | "Fix these stale docs" | rewrite | `Workflows/Rewrite.md`, `Writing.md`, `DocTypes.md` |
 | "Update docs for this PR/diff" | maintain | `Workflows/Maintain.md`, `Writing.md`, maybe `OrbitIntegration.md` |
+| "Prepare bounded branch-state evidence" | diff data layer | Run or read `philip diff`, then use `Workflows/Maintain.md` or `Workflows/Audit.md` as needed |
 | "How should docs be structured?" | architecture | `DocTypes.md`, `Writing.md`, `Audit.md` |
 | "Large repo, architecture work, unclear codebase, or deeper audit" | exploration | `Exploration.md` plus the active workflow |
 | "Use GitLab Orbit/GKG" | enhanced exploration | `OrbitIntegration.md` plus the active workflow |
 | "Validate or release Philip itself" | validation | `Validation.md`, `README.md`, `SKILL.md` |
 
 ## Operating Rules
+
+When maintaining docs for a PR/diff, consider running `philip diff` first. It writes an **Actionable diff** to `.philip/artifacts/{workstream}/philip-diff.json` in the generated local **Artifact store**. Use that JSON as bounded evidence for Review artifacts, HTML artifacts, Markdown briefs, and agent handoff prompts. It is not an automatic Markdown or HTML generator, does not include full diff hunks, does not score severity/confidence/risk/importance, and does not silently edit `.gitignore`. For claims beyond the JSON, inspect referenced files or Git commands and cite them.
 
 1. Start by identifying the mode and scope.
 2. Inventory existing docs before writing unless the user names a single target file.

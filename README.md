@@ -215,6 +215,63 @@ Use Philip to update docs for the current PR diff.
 
 Philip starts by routing through `SKILL.md`, then loads only the needed workflow and reference files. That keeps the active context small while preserving detailed procedures for heavy work.
 
+### Diff Data Layer
+
+Use `philip diff` when a branch needs a bounded evidence packet for review, documentation maintenance, or agent handoff:
+
+```bash
+philip diff
+```
+
+On success, Philip writes an **Actionable diff** JSON file and prints its repo-relative path:
+
+```text
+Wrote Philip diff data to .philip/artifacts/{workstream}/philip-diff.json
+```
+
+The **Artifact store** is `.philip/artifacts/`. It is generated local output. Users may add it to `.gitignore` if that matches their repo policy, but Philip does not silently edit `.gitignore`.
+
+Workstream names are deterministic:
+
+- Current branch names are sanitized, so `feature/html-artifacts` becomes `feature-html-artifacts`.
+- Detached HEAD uses `detached-{shortSha}`.
+- Non-Git directories or Git repos without a usable commit use `current`.
+
+`philip-diff.json` is factual input for downstream agents, not a rendered report. The **Diff collector script** records the implemented data contract:
+
+- `repo`, `comparison`, and `provenance` with Git command provenance but no raw command output.
+- `changedFiles`, including tracked, untracked, deleted, renamed, additions/deletions where Git provides them, and mechanical surface flags.
+- **Diff impact metrics**, **Repo inventory**, and `changedSurfaces` as factual counts and groupings.
+- `changedIdentifiers` from changed lines or bounded untracked-file reads.
+- `localArtifacts` metadata for plans, investigations, reports, design notes, docs, and HTML files.
+- `verification` metadata listing discovered validation commands and changed tests; `philip diff` does not run those commands.
+
+V1 non-goals are explicit: no HTML mode, no deterministic HTML renderer, no automatic Markdown branch report, no full diff hunks, no severity/confidence/risk/importance scoring, no occurrence scan, and no silent `.gitignore` edits.
+
+Example downstream prompt for a Markdown PR brief:
+
+```text
+Read .philip/artifacts/{workstream}/philip-diff.json as bounded evidence.
+Write a Markdown PR brief that cites changed file paths, verification commands discovered, and any local artifacts referenced in the JSON.
+Do not invent severity, risk, confidence, or importance. For claims beyond the JSON, inspect the referenced files or Git commands and cite what you checked.
+```
+
+Example downstream prompt for an HTML review artifact:
+
+```text
+Use .philip/artifacts/{workstream}/philip-diff.json to create a self-contained HTML artifact for branch review.
+Treat the JSON as evidence, not a design mandate. Show changed files, Diff impact metrics, Repo inventory highlights, verification metadata, and local artifacts.
+Do not claim Philip generated this HTML automatically, and do not add facts that are not in the JSON unless you inspect and cite the referenced paths or commands.
+```
+
+Example downstream prompt for agent handoff:
+
+```text
+Use .philip/artifacts/{workstream}/philip-diff.json to prepare a handoff prompt for the next agent.
+Summarize the Actionable diff, list the highest-leverage files to inspect, include discovered but not-run verification commands, and state which claims are bounded to the JSON.
+For anything beyond the JSON, tell the next agent exactly which paths or Git commands to inspect first.
+```
+
 ### Audit Report Linter
 
 Philip includes a dependency-free structure linter for audit reports:
