@@ -306,10 +306,18 @@ confidence labels are structural lint errors.
 Philip exposes its machine-readable contract and an agent quick guide in-tool:
 
 ```bash
+philip --robot-triage
 philip capabilities --json
 philip robot-docs guide
 philip help diff
 ```
+
+Use `philip --robot-triage` when an agent needs a one-call status packet. It
+prints exactly one JSON object to stdout and does not write artifacts. The
+object includes the CLI contract version, structured surfaces, `.philip/artifacts/`
+health, current and latest `philip-diff.json` paths when present, discovered
+verification commands, recommended next commands, recovery hints, and exit
+codes.
 
 User-input errors exit 2 and write diagnostics to stderr. Requested JSON goes to
 stdout without progress text.

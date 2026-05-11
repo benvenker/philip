@@ -1,5 +1,30 @@
 # Ambition Bar Check
 
+## Pass 2
+
+Substantive changes shipped: 1 focused mega-command.
+
+Dimensions touched:
+- agent_ergonomics
+- output_parseability
+- self_documentation
+- composability
+- recovery
+- regression_resistance
+
+Required surface types:
+- Mega-command: yes, `philip --robot-triage`.
+- Capabilities or robot-docs: unchanged from Pass 1.
+- `--json` or robot output on read-side: yes, `philip --robot-triage`.
+- Error rewrite: yes, unknown `--robot-triage` flags exit 2 with corrective stderr.
+- Intent-inference handler: unchanged from Pass 1.
+
+Result:
+- The Pass 1 deferred Ambition Bar item is now applied and regression-tested.
+- No broader pass was attempted because the user explicitly scoped Pass 2 to the deferred mega-command.
+
+## Pass 1
+
 Substantive changes shipped: 5.
 
 Dimensions touched:

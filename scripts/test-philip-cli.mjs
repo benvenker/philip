@@ -138,6 +138,81 @@ test("robot-docs guide prints the agent quick guide", () => {
   assert.equal(result.stderr, "");
 });
 
+test("robot triage prints one parseable JSON object without writing artifacts", (t) => {
+  const repo = makeTempRepo(t);
+  writeFile(repo, "README.md", "# Example\n");
+  commitAll(repo, "Initial commit");
+
+  const beforeArtifacts = path.join(repo.root, ".philip", "artifacts");
+  const result = runPhilip(["--robot-triage"], { cwd: repo.root });
+
+  assert.equal(result.status, 0, formatResult(result));
+  assert.equal(result.stderr, "");
+  assert.equal(
+    fs.existsSync(beforeArtifacts),
+    false,
+    "robot triage must not create the artifact store"
+  );
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.tool, "philip");
+  assert.equal(parsed.contractVersion, 2);
+  assert.equal(parsed.invocation, "philip --robot-triage");
+  assert.ok(Array.isArray(parsed.commands));
+  assert.ok(parsed.commands.some((command) => command.name === "diff"));
+  assert.ok(Array.isArray(parsed.structuredSurfaces));
+  assert.equal(parsed.artifactStore.path, ".philip/artifacts");
+  assert.equal(parsed.artifactStore.exists, false);
+  assert.equal(parsed.currentDiffArtifactPath, null);
+  assert.equal(parsed.latestDiffArtifactPath, null);
+  assert.ok(parsed.verification.commandsDiscovered.includes("npm run check"));
+  assert.deepEqual(parsed.verification.commandsRun, []);
+  assert.ok(
+    parsed.recommendedNextCommands.some((entry) => entry.command === "philip diff --json")
+  );
+  assert.equal(parsed.exitCodes["2"], "user-input-error");
+});
+
+test("robot triage reports current and latest diff artifacts when present", (t) => {
+  const repo = makeTempRepo(t);
+  writeFile(repo, "README.md", "# Example\n");
+  commitAll(repo, "Initial commit");
+  writeFile(
+    repo,
+    ".philip/artifacts/main/philip-diff.json",
+    JSON.stringify({
+      verification: {
+        commandsDiscovered: ["npm run custom"],
+        commandsRun: ["npm run old"],
+      },
+    })
+  );
+
+  const result = runPhilip(["--robot-triage"], { cwd: repo.root });
+
+  assert.equal(result.status, 0, formatResult(result));
+  assert.equal(result.stderr, "");
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.artifactStore.exists, true);
+  assert.equal(parsed.artifactStore.currentWorkstream, "main");
+  assert.equal(
+    parsed.currentDiffArtifactPath,
+    ".philip/artifacts/main/philip-diff.json"
+  );
+  assert.equal(parsed.latestDiffArtifactPath, ".philip/artifacts/main/philip-diff.json");
+  assert.ok(parsed.verification.commandsDiscovered.includes("npm run custom"));
+  assert.deepEqual(parsed.verification.commandsRun, []);
+});
+
+test("robot triage rejects unknown flags with corrective stderr", () => {
+  const result = runPhilip(["--robot-triage", "--bad"], { cwd: root });
+
+  assert.equal(result.status, 2, formatResult(result));
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /Unknown option: --bad/);
+  assert.match(result.stderr, /philip --robot-triage/);
+});
+
 test("unknown top-level commands teach the nearest command", () => {
   const result = runPhilip(["dif"], { cwd: root });
 

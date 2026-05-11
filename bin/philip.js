@@ -9,6 +9,7 @@ const { spawnSync } = require("node:child_process");
 
 const skillName = "philip";
 const packageRoot = path.resolve(__dirname, "..");
+const cliContractVersion = 2;
 const skillFiles = [
   "SKILL.md",
   "Audit.md",
@@ -125,6 +126,7 @@ Usage:
   philip install [--user|--project|--target <dir>] [--force] [--dry-run]
   philip lint-audit <file|-> [--json] [--format audit|plan|auto]
   philip diff [--json]
+  philip --robot-triage
   philip capabilities --json
   philip robot-docs guide
   philip help [command]
@@ -133,6 +135,7 @@ Commands:
   install           Install the portable Philip skill directory
   lint-audit        Check audit report structure
   diff              Write an Actionable diff JSON evidence packet to .philip/artifacts/{workstream}/philip-diff.json
+  --robot-triage    Print one JSON object with CLI contract, artifact health, verification commands, and recovery hints
   capabilities      Print the machine-readable CLI contract
   robot-docs        Print the agent quick guide
 
@@ -142,6 +145,7 @@ Examples:
   philip lint-audit docs/audit.md
   philip lint-audit - --json --format plan
   philip diff --json
+  philip --robot-triage
   philip capabilities --json
   philip robot-docs guide
 `);
@@ -161,6 +165,18 @@ function parseArgs(argv) {
 
   if (options.command === "--help" || options.command === "-h") {
     return { command: "help", topic: "main" };
+  }
+
+  if (options.command === "--robot-triage") {
+    return parseRobotTriageArgs(argv.slice(1));
+  }
+
+  if (options.command.startsWith("-")) {
+    throw userInputErrorForOption(options.command, {
+      command: "",
+      knownFlags: ["--robot-triage", "--help"],
+      usageCommand: "philip --help",
+    });
   }
 
   if (options.command === "help") {
@@ -342,6 +358,28 @@ function parseRobotDocsArgs(argv) {
   return { command: "robot-docs" };
 }
 
+function parseRobotTriageArgs(argv) {
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      return { command: "help", topic: "main" };
+    }
+
+    if (arg.startsWith("-")) {
+      throw userInputErrorForOption(arg, {
+        command: "--robot-triage",
+        knownFlags: ["--help"],
+        usageCommand: "philip --robot-triage",
+      });
+    }
+
+    throw new UserInputError(
+      `Unexpected argument: ${arg}\nRun \`philip --robot-triage\` for the agent triage JSON.`
+    );
+  }
+
+  return { command: "robot-triage" };
+}
+
 function expandHome(value) {
   if (value === "~") {
     return os.homedir();
@@ -450,46 +488,9 @@ function printCapabilities() {
   const capabilities = {
     tool: "philip",
     version: readPackageVersion(),
-    contractVersion: 1,
-    commands: [
-      {
-        name: "install",
-        usage: "philip install [--user|--project|--target <dir>] [--force] [--dry-run]",
-        kind: "mutating",
-        structuredOutput: false,
-      },
-      {
-        name: "lint-audit",
-        usage: "philip lint-audit <file|-> [--json] [--format audit|plan|auto]",
-        kind: "read",
-        structuredOutput: true,
-        schema: "AuditLintResult",
-      },
-      {
-        name: "diff",
-        usage: "philip diff [--json]",
-        kind: "artifact_writer",
-        structuredOutput: true,
-        schema: "PhilipDiffResultEnvelope",
-      },
-      {
-        name: "capabilities",
-        usage: "philip capabilities --json",
-        kind: "read",
-        structuredOutput: true,
-      },
-      {
-        name: "robot-docs",
-        usage: "philip robot-docs guide",
-        kind: "read",
-        structuredOutput: false,
-      },
-    ],
-    exitCodes: {
-      0: "success",
-      1: "runtime-or-validation-failure",
-      2: "user-input-error",
-    },
+    contractVersion: cliContractVersion,
+    commands: buildCommandContract(),
+    exitCodes: buildExitCodeDictionary(),
     env: [
       {
         name: "PHILIP_AUTO_INSTALL",
@@ -506,6 +507,302 @@ function printCapabilities() {
   };
 
   process.stdout.write(`${JSON.stringify(capabilities, null, 2)}\n`);
+}
+
+function printRobotTriage() {
+  const repo = resolveRobotRepo(process.cwd());
+  const artifactStore = inspectArtifactStore(repo);
+  const verification = discoverVerificationCommands(artifactStore.latestDiffArtifactAbsolutePath);
+  const payload = {
+    tool: "philip",
+    version: readPackageVersion(),
+    contractVersion: cliContractVersion,
+    invocation: "philip --robot-triage",
+    stdout: "json-only",
+    sideEffects: false,
+    commands: buildCommandContract(),
+    structuredSurfaces: buildStructuredSurfaces(),
+    artifactStore: publicArtifactStore(artifactStore),
+    currentDiffArtifactPath: artifactStore.currentDiffArtifactPath,
+    latestDiffArtifactPath: artifactStore.latestDiffArtifactPath,
+    verification,
+    recommendedNextCommands: buildRecommendedNextCommands(),
+    recoveryHints: buildRecoveryHints(),
+    exitCodes: buildExitCodeDictionary(),
+  };
+
+  process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+}
+
+function buildCommandContract() {
+  return [
+    {
+      name: "install",
+      usage: "philip install [--user|--project|--target <dir>] [--force] [--dry-run]",
+      kind: "mutating",
+      structuredOutput: false,
+    },
+    {
+      name: "lint-audit",
+      usage: "philip lint-audit <file|-> [--json] [--format audit|plan|auto]",
+      kind: "read",
+      structuredOutput: true,
+      schema: "AuditLintResult",
+    },
+    {
+      name: "diff",
+      usage: "philip diff [--json]",
+      kind: "artifact_writer",
+      structuredOutput: true,
+      schema: "PhilipDiffResultEnvelope",
+    },
+    {
+      name: "robot-triage",
+      usage: "philip --robot-triage",
+      kind: "read",
+      structuredOutput: true,
+      schema: "PhilipRobotTriage",
+    },
+    {
+      name: "capabilities",
+      usage: "philip capabilities --json",
+      kind: "read",
+      structuredOutput: true,
+      schema: "PhilipCapabilities",
+    },
+    {
+      name: "robot-docs",
+      usage: "philip robot-docs guide",
+      kind: "read",
+      structuredOutput: false,
+    },
+  ];
+}
+
+function buildStructuredSurfaces() {
+  return [
+    {
+      command: "philip --robot-triage",
+      stdout: "json",
+      schema: "PhilipRobotTriage",
+      sideEffects: false,
+    },
+    {
+      command: "philip capabilities --json",
+      stdout: "json",
+      schema: "PhilipCapabilities",
+      sideEffects: false,
+    },
+    {
+      command: "philip diff --json",
+      stdout: "json",
+      schema: "PhilipDiffResultEnvelope",
+      sideEffects: true,
+      artifactPath: ".philip/artifacts/{workstream}/philip-diff.json",
+    },
+    {
+      command: "philip lint-audit <file|-> --json",
+      stdout: "json",
+      schema: "AuditLintResult",
+      sideEffects: false,
+    },
+  ];
+}
+
+function buildExitCodeDictionary() {
+  return {
+    0: "success",
+    1: "runtime-or-validation-failure",
+    2: "user-input-error",
+  };
+}
+
+function resolveRobotRepo(cwd) {
+  const root = runGitStdout(["rev-parse", "--show-toplevel"], cwd);
+  const repoRoot = root || cwd;
+  const branch = runGitStdout(["rev-parse", "--abbrev-ref", "HEAD"], repoRoot);
+  const shortSha = branch === "HEAD" ? runGitStdout(["rev-parse", "--short", "HEAD"], repoRoot) : null;
+  const workstream =
+    branch && branch !== "HEAD"
+      ? sanitizeWorkstream(branch)
+      : shortSha
+        ? `detached-${shortSha}`
+        : "current";
+
+  return {
+    root: repoRoot,
+    isGit: Boolean(root),
+    workstream,
+  };
+}
+
+function inspectArtifactStore(repo) {
+  const storeRelativePath = ".philip/artifacts";
+  const storePath = path.join(repo.root, storeRelativePath);
+  const health = {
+    path: storeRelativePath,
+    absolutePath: storePath,
+    exists: false,
+    readable: false,
+    currentWorkstream: repo.workstream,
+    workstreams: [],
+    currentDiffArtifactPath: null,
+    currentDiffArtifactAbsolutePath: null,
+    latestDiffArtifactPath: null,
+    latestDiffArtifactAbsolutePath: null,
+    latestDiffArtifactMtime: null,
+    issues: [],
+  };
+
+  try {
+    const stat = fs.statSync(storePath);
+    if (!stat.isDirectory()) {
+      health.exists = true;
+      health.issues.push("artifact-store-path-is-not-a-directory");
+      return health;
+    }
+  } catch (error) {
+    if (error && error.code !== "ENOENT") {
+      health.issues.push(`artifact-store-stat-failed:${error.code || error.message}`);
+    }
+    return health;
+  }
+
+  health.exists = true;
+
+  let entries = [];
+  try {
+    entries = fs.readdirSync(storePath, { withFileTypes: true });
+    health.readable = true;
+  } catch (error) {
+    health.issues.push(`artifact-store-read-failed:${error.code || error.message}`);
+    return health;
+  }
+
+  health.workstreams = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+
+  const currentRelativePath = toPosix(
+    path.join(storeRelativePath, repo.workstream, "philip-diff.json")
+  );
+  const currentAbsolutePath = path.join(repo.root, currentRelativePath);
+  if (fileExists(currentAbsolutePath)) {
+    health.currentDiffArtifactPath = currentRelativePath;
+    health.currentDiffArtifactAbsolutePath = currentAbsolutePath;
+  }
+
+  for (const workstream of health.workstreams) {
+    const relativePath = toPosix(path.join(storeRelativePath, workstream, "philip-diff.json"));
+    const absolutePath = path.join(repo.root, relativePath);
+    try {
+      const stat = fs.statSync(absolutePath);
+      if (!stat.isFile()) {
+        continue;
+      }
+      if (!health.latestDiffArtifactMtime || stat.mtimeMs > health.latestDiffArtifactMtime) {
+        health.latestDiffArtifactPath = relativePath;
+        health.latestDiffArtifactAbsolutePath = absolutePath;
+        health.latestDiffArtifactMtime = stat.mtimeMs;
+      }
+    } catch {
+      // Ignore missing per-workstream files; the health object reports store-level issues.
+    }
+  }
+
+  return health;
+}
+
+function publicArtifactStore(artifactStore) {
+  return {
+    path: artifactStore.path,
+    exists: artifactStore.exists,
+    readable: artifactStore.readable,
+    currentWorkstream: artifactStore.currentWorkstream,
+    workstreams: artifactStore.workstreams,
+    currentDiffArtifactPath: artifactStore.currentDiffArtifactPath,
+    latestDiffArtifactPath: artifactStore.latestDiffArtifactPath,
+    latestDiffArtifactMtime: artifactStore.latestDiffArtifactMtime,
+    issues: artifactStore.issues,
+  };
+}
+
+function discoverVerificationCommands(latestDiffArtifactAbsolutePath) {
+  const commands = new Set(readPackageVerificationCommands());
+
+  if (latestDiffArtifactAbsolutePath) {
+    const diffArtifact = readJsonFile(latestDiffArtifactAbsolutePath);
+    for (const command of diffArtifact?.verification?.commandsDiscovered || []) {
+      commands.add(command);
+    }
+  }
+
+  return {
+    commandsDiscovered: [...commands].sort(),
+    commandsRun: [],
+    notRun: [...commands].sort(),
+    note: "`philip --robot-triage` discovers verification commands but never runs them.",
+  };
+}
+
+function readPackageVerificationCommands() {
+  const packageJson = readJsonFile(path.join(packageRoot, "package.json"));
+  const scripts = packageJson?.scripts || {};
+  return Object.keys(scripts)
+    .filter((name) => name === "check" || name.startsWith("test"))
+    .sort()
+    .map((name) => `npm run ${name}`);
+}
+
+function buildRecommendedNextCommands() {
+  return [
+    {
+      task: "inspect_cli_contract",
+      command: "philip capabilities --json",
+      when: "Need the stable command and exit-code contract.",
+    },
+    {
+      task: "collect_actionable_diff",
+      command: "philip diff --json",
+      when: "Need a fresh Actionable diff artifact for the current workstream.",
+    },
+    {
+      task: "lint_audit_report",
+      command: "philip lint-audit <file> --json",
+      when: "Need parseable structure validation for a Philip audit or plan.",
+    },
+    {
+      task: "read_agent_guide",
+      command: "philip robot-docs guide",
+      when: "Need concise human-readable CLI guidance.",
+    },
+  ];
+}
+
+function buildRecoveryHints() {
+  return [
+    {
+      failure: "unknown-command-or-flag",
+      exitCode: 2,
+      hint: "Run `philip help` or `philip help <command>`; stderr includes the nearest known command or flag when one is clear.",
+    },
+    {
+      failure: "missing-artifact-store",
+      exitCode: 0,
+      hint: "Run `philip diff --json` to create `.philip/artifacts/{workstream}/philip-diff.json`.",
+    },
+    {
+      failure: "invalid-confidence-label",
+      exitCode: 1,
+      hint: "Use `Confidence: High`, `Confidence: Medium`, or `Confidence: Low`; invalid values produce `INVALID_CONFIDENCE_LABEL` in JSON lint output.",
+    },
+    {
+      failure: "git-or-environment-failure",
+      exitCode: 1,
+      hint: "`philip diff --json` writes environment diagnostics to stderr; fix the Git state or run inside the intended repository.",
+    },
+  ];
 }
 
 function printRobotGuide() {
@@ -539,6 +836,49 @@ function readPackageVersion() {
   }
 }
 
+function readJsonFile(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function runGitStdout(args, cwd) {
+  const result = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+  });
+
+  if (result.status !== 0 || result.error) {
+    return null;
+  }
+
+  return result.stdout.trim() || null;
+}
+
+function sanitizeWorkstream(value) {
+  const sanitized = value
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return sanitized || "current";
+}
+
+function toPosix(value) {
+  return value.split(path.sep).join("/");
+}
+
+function fileExists(filePath) {
+  try {
+    return fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function userInputErrorForCommand(command, options = {}) {
   const prefix = options.prefix || "Unknown command";
   const nearest = nearestToken(command, commandNames);
@@ -547,11 +887,12 @@ function userInputErrorForCommand(command, options = {}) {
   return new UserInputError(`${prefix}: ${command}${didYouMean}${suffix}`);
 }
 
-function userInputErrorForOption(option, { command, knownFlags }) {
+function userInputErrorForOption(option, { command, knownFlags, usageCommand }) {
   const nearest = nearestToken(option, knownFlags);
   const didYouMean = nearest ? `\nDid you mean \`${nearest}\`?` : "";
+  const usage = usageCommand || `philip ${command} --help`;
   return new UserInputError(
-    `Unknown option: ${option}${didYouMean}\nRun \`philip ${command} --help\` for usage.`
+    `Unknown option: ${option}${didYouMean}\nRun \`${usage}\` for usage.`
   );
 }
 
@@ -622,6 +963,11 @@ function main() {
 
     if (options.command === "robot-docs") {
       printRobotGuide();
+      return;
+    }
+
+    if (options.command === "robot-triage") {
+      printRobotTriage();
       return;
     }
 

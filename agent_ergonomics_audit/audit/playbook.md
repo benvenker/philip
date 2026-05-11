@@ -12,6 +12,7 @@ Top fixes applied in this pass:
 8. Add `philip robot-docs guide` for in-tool agent onboarding.
 9. Pin the CLI behavior in `scripts/test-philip-cli.mjs`.
 10. Pin invalid confidence validation in both direct linter and CLI coverage.
+11. Add `philip --robot-triage` as the one-call JSON status packet for agents.
 
 Deferred:
-- A larger `--robot-triage` mega-command could combine help, capabilities, artifact-store health, and recommended next commands. This pass kept the surface narrower because the user asked to focus on `help`, `install`, `lint-audit`, and `diff`.
+- No known Pass 2 CLI surface remains deferred. Future passes can add schema docs if external consumers depend on the `philip diff --json` result envelope.
