@@ -19,6 +19,12 @@ const WHOLE_FILE_IDENTIFIER_READ_LIMIT = 64 * 1024;
 
 function main() {
   try {
+    const options = parseArgs(process.argv.slice(2));
+    if (options.help) {
+      printHelp();
+      return;
+    }
+
     const provenance = [];
     const repo = resolveRepoRoot(process.cwd(), provenance);
     const comparison = resolveComparison(repo, provenance);
@@ -53,11 +59,75 @@ function main() {
     });
 
     writeJsonAtomic(outputPath, actionableDiff);
-    process.stdout.write(`Wrote Philip diff data to ${outputRelativePath}\n`);
+    if (options.json) {
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            ok: true,
+            artifact: {
+              kind: "actionable_diff",
+              path: outputRelativePath,
+              schemaVersion: actionableDiff.schemaVersion,
+            },
+            comparison: actionableDiff.comparison,
+            metrics: actionableDiff.metrics,
+          },
+          null,
+          2
+        )}\n`
+      );
+    } else {
+      process.stdout.write(`Wrote Philip diff data to ${outputRelativePath}\n`);
+    }
   } catch (error) {
     process.stderr.write(`philip diff: ${error.message}\n`);
-    process.exitCode = 1;
+    process.exitCode = error instanceof UserInputError ? 2 : 1;
   }
+}
+
+class UserInputError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "UserInputError";
+  }
+}
+
+function parseArgs(argv) {
+  const options = {
+    help: false,
+    json: false,
+  };
+
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      options.help = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    } else if (arg.startsWith("-")) {
+      const suggestion = arg === "--jsno" || arg === "--jsoon" ? "\nDid you mean `--json`?" : "";
+      throw new UserInputError(
+        `Unknown option: ${arg}${suggestion}\nRun \`philip diff --help\` for usage.`
+      );
+    } else {
+      throw new UserInputError(
+        `Unexpected argument: ${arg}\nRun \`philip diff --help\` for usage.`
+      );
+    }
+  }
+
+  return options;
+}
+
+function printHelp() {
+  process.stdout.write(`Usage:
+  philip diff [--json]
+
+Write an Actionable diff JSON evidence packet to .philip/artifacts/{workstream}/philip-diff.json.
+
+Options:
+  --json             Print a machine-readable result envelope to stdout
+  -h, --help         Show this help without writing artifacts
+`);
 }
 
 function runGit(args, options = {}) {

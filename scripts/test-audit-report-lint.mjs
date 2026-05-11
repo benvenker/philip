@@ -38,6 +38,13 @@ const cases = [
     expectCode: "INVALID_VERIFICATION_LABEL",
   },
   {
+    name: "invalid confidence label",
+    file: "fail-invalid-confidence-label.md",
+    format: "audit",
+    expectStatus: 1,
+    expectCode: "INVALID_CONFIDENCE_LABEL",
+  },
+  {
     name: "plan checklist before audit",
     file: "fail-plan-checklist-before-audit.md",
     format: "plan",

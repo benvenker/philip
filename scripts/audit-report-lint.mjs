@@ -26,6 +26,7 @@ const VERIFICATION_LABELS = [
   "not found",
   "partially verified",
 ];
+const CONFIDENCE_LABELS = ["high", "medium", "low"];
 const STRUCTURE_WARNING =
   "Structural pass only: audit-report-lint checks report shape, not whether cited evidence is factually true.";
 const FIELD_NAMES = FINDING_FIELDS.map((field) => field.toLowerCase());
@@ -416,6 +417,17 @@ function validateFindingBlock(block, severity, findingNumber, issues) {
       section,
     });
   }
+
+  const confidence = extractConfidenceLabel(block);
+  if (confidence && !CONFIDENCE_LABELS.includes(confidence)) {
+    addIssue(issues, {
+      code: "INVALID_CONFIDENCE_LABEL",
+      severity: "error",
+      message: `${title} uses unsupported confidence label "${confidence}".`,
+      fix: "Use Confidence: High, Confidence: Medium, or Confidence: Low.",
+      section,
+    });
+  }
 }
 
 function firstLineTitle(block) {
@@ -439,13 +451,28 @@ function fieldRegex(field) {
 }
 
 function extractVerificationLabel(block) {
-  const match = fieldRegex("Verification").exec(block);
-  if (!match) {
+  const line = extractFieldLabel(block, "Verification");
+  if (!line) {
+    return line;
+  }
+
+  for (const label of VERIFICATION_LABELS) {
+    if (line === label || line.startsWith(`${label} `) || line.startsWith(`${label}.`)) {
+      return label;
+    }
+  }
+
+  return line;
+}
+
+function extractFieldLabel(block, field) {
+  const fieldMatch = fieldRegex(field).exec(block);
+  if (!fieldMatch) {
     return null;
   }
 
   const line = block
-    .slice(match.index + match[0].length)
+    .slice(fieldMatch.index + fieldMatch[0].length)
     .split("\n")[0]
     .trim()
     .toLowerCase()
@@ -458,13 +485,22 @@ function extractVerificationLabel(block) {
     return "";
   }
 
-  for (const label of VERIFICATION_LABELS) {
+  return line;
+}
+
+function extractConfidenceLabel(block) {
+  const line = extractFieldLabel(block, "Confidence");
+  if (!line) {
+    return line;
+  }
+
+  for (const label of CONFIDENCE_LABELS) {
     if (line === label || line.startsWith(`${label} `) || line.startsWith(`${label}.`)) {
       return label;
     }
   }
 
-  return line;
+  return line.split(/\s+/)[0];
 }
 
 function validateCoverageMap(sections, issues) {

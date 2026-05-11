@@ -28,9 +28,10 @@
     "README.md"
   ],
   "scripts": {
-    "check": "npm run test:lint-audit && npm run test:diff && node bin/philip.js install --dry-run && npm pack --dry-run",
+    "check": "npm run test:lint-audit && npm run test:diff && npm run test:cli && node bin/philip.js install --dry-run && npm pack --dry-run",
     "test:lint-audit": "node scripts/test-audit-report-lint.mjs",
     "test:diff": "node scripts/test-collect-philip-diff.mjs",
+    "test:cli": "node --test scripts/test-philip-cli.mjs",
     "pack:check": "npm pack --dry-run",
     "install:skill": "node bin/philip.js install",
     "postinstall": "node scripts/postinstall.js",

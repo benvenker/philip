@@ -221,12 +221,28 @@ Use `philip diff` when a branch needs a bounded evidence packet for review, docu
 
 ```bash
 philip diff
+philip diff --json
 ```
 
 On success, Philip writes an **Actionable diff** JSON file and prints its repo-relative path:
 
 ```text
 Wrote Philip diff data to .philip/artifacts/{workstream}/philip-diff.json
+```
+
+Use `--json` when another tool or agent needs to parse the result envelope from stdout:
+
+```json
+{
+  "ok": true,
+  "artifact": {
+    "kind": "actionable_diff",
+    "path": ".philip/artifacts/{workstream}/philip-diff.json",
+    "schemaVersion": 1
+  },
+  "comparison": {},
+  "metrics": {}
+}
 ```
 
 The **Artifact store** is `.philip/artifacts/`. It is generated local output. Users may add it to `.gitignore` if that matches their repo policy, but Philip does not silently edit `.gitignore`.
@@ -281,6 +297,22 @@ philip lint-audit path/to/audit.md
 philip lint-audit path/to/plan.md --format plan
 philip lint-audit - --json
 ```
+
+`Confidence` fields must start with `High`, `Medium`, or `Low`. Invalid
+confidence labels are structural lint errors.
+
+### Agent CLI Contract
+
+Philip exposes its machine-readable contract and an agent quick guide in-tool:
+
+```bash
+philip capabilities --json
+philip robot-docs guide
+philip help diff
+```
+
+User-input errors exit 2 and write diagnostics to stderr. Requested JSON goes to
+stdout without progress text.
 
 Installed-skill contexts can invoke the script directly when the `philip` CLI is
 not on `PATH`:
