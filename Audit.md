@@ -35,6 +35,23 @@ rg --files -g 'package.json' -g 'pyproject.toml' -g 'Cargo.toml' -g 'go.mod' -g 
 rg --files -g '*openapi*' -g '*swagger*' -g 'proto/**' -g 'graphql/**'
 ```
 
+For public product surfaces, build an explicit inventory instead of relying on whichever docs you happened to read first:
+
+```bash
+rg -n '"bin"|"files"|"scripts"' package.json
+rg -n "program\.command|Command::new|argparse|click\.|cobra\.Command|commander|clap::" .
+rg -n "server\.tool|registerTool|McpServer|tools/list|capabilities" .
+rg -n "process\.env|import\.meta\.env|os\.getenv|std::env|ENV\[" .
+rg -n "husky|pre-commit|lint-staged|\.github/workflows|Makefile|justfile|Taskfile" .
+```
+
+Use the inventory to separate:
+
+- **Covered somewhere**: another doc mentions the surface.
+- **Complete in this doc**: the current doc explains the surface or explicitly points to the canonical doc for it.
+
+When auditing a design, architecture, README, setup, or product-contract doc, treat doc-local omissions as findings. If the doc names a shipped binary, MCP tool, command, env var, config file, hook, package script, or packaged doc, the doc must close the loop locally with at least a short explanation or a link to the owning doc.
+
 ### Accuracy
 
 - Commands in docs match package scripts, CLI parser definitions, Make targets, task runners, or CI steps.
@@ -164,6 +181,12 @@ Allowed verification labels:
 Whole-repo audits must include a coverage map across both documentation types and public product surfaces: README/setup, API/reference, architecture, runbooks, troubleshooting, security, CLIs, routes, SDK exports, config, schemas, services, packages, workflows, or equivalents that apply to the repo.
 
 Sampled audits must explicitly say they were sampled in the Executive Summary, Coverage Map, or Verification Notes. Do not let a sample read like a whole-repo audit.
+
+For single-doc audits, include a doc-local coverage map when the doc presents itself as a design, architecture, product, setup, or public-contract source of truth:
+
+| Named surface | Where named | Local explanation or delegation | Status |
+| --- | --- | --- | --- |
+| `agent-session-search-doctor` | Product contract list | Not explained in CLI/diagnostic section | Missing |
 
 No finding without evidence. No vague "improve docs" recommendations. The fix should name the doc section or new doc type needed.
 

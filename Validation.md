@@ -54,6 +54,7 @@ Before accepting a forward-test output:
 - Commands and examples are verified or explicitly marked unverified.
 - Unsupported claims are removed, corrected, or labeled unknown.
 - Public APIs, env vars, paths, and config names match source evidence.
+- Design, architecture, README, setup, and product-contract docs pass a doc-local consistency check: every named public surface is explained in that doc or explicitly delegated to another doc.
 - The AI-residue pass from `Writing.md` has been run and followed by manual reading.
 - Final response says what changed, what was checked, what was not verified, and any remaining risk.
 

@@ -348,6 +348,7 @@ Audit checks include:
 - API examples that diverge from handlers, schemas, or tests.
 - Recent code changes that did not update docs.
 - Undocumented public symbols and high-churn areas.
+- Doc-local completeness gaps where a design, architecture, setup, README, or product-contract doc names a public surface but never explains it or delegates it to another doc.
 
 ### Write
 
@@ -355,9 +356,11 @@ Philip deep-reads the source, chooses the right doc type, drafts from evidence, 
 
 Supported doc types include README, setup guide, how-to guide, API reference, architecture guide, runbook, troubleshooting guide, changelog, contributor guide, security guide, migration guide, and glossary.
 
+For design, architecture, README, setup, and product-contract docs, Philip also runs a doc-local consistency pass: every named binary, command, tool, env var, config file, hook, package script, package artifact, or shipped doc must be explained in that doc or explicitly delegated to the owning doc.
+
 ### Rewrite
 
-Philip updates existing docs without flattening useful structure. It uses git history to identify renamed commands, deleted paths, changed config, and stale examples.
+Philip updates existing docs without flattening useful structure. It uses git history to identify renamed commands, deleted paths, changed config, stale examples, and public surfaces that the rewritten doc names but fails to close locally.
 
 Default behavior: keep the good parts, remove the trapdoors.
 

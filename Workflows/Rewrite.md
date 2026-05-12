@@ -34,6 +34,7 @@ Record:
 - Good structure worth keeping.
 - Claims requiring verification.
 - Commands and examples.
+- Public product surfaces named by this doc: binaries, commands, tools, env vars, config files, hooks, package scripts, package artifacts, and shipped docs.
 - Links and referenced paths.
 - Tone or terminology to preserve.
 
@@ -132,6 +133,19 @@ rg -n "oldCommand|oldEnvVar|oldPath|oldEndpoint|oldFeatureName" path/to/doc.md d
 ```
 
 If multiple docs contradict each other, fix all in-scope docs or report the remaining contradiction.
+
+## 5.5. Run A Doc-Local Consistency Pass
+
+After creating or heavily rewriting a doc, re-audit the changed doc against the public surface inventory. This is narrower than a whole-repo audit and catches omissions introduced by the rewrite.
+
+Ask:
+
+- Which product surfaces does this doc name in headings, overview lists, diagrams, tables, contracts, or examples?
+- Is each named surface explained later in this doc?
+- If the surface is operational rather than architectural, does the doc at least include one sentence or an explicit pointer to the owning doc?
+- Did the rewrite introduce a new omission or contradiction?
+
+Do not waive a gap because README or another doc covers it. When the changed doc presents itself as the design, architecture, setup, or product contract, local completeness matters.
 
 ## 6. Verify
 

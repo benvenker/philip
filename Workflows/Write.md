@@ -53,6 +53,7 @@ Gather:
 
 - Entry points.
 - Public interfaces.
+- Public product surfaces: package `bin` entries, MCP tools, CLI commands, config files, environment variables, package scripts, hooks/checks, CI workflows, and packaged docs/artifacts.
 - Required config and defaults.
 - Error cases.
 - Data flow.
@@ -168,8 +169,15 @@ Confirm:
 
 - The doc answers the user request.
 - Commands, paths, env vars, APIs, and symbols are backed by evidence.
+- Every product surface named by the doc is explained in the doc or explicitly delegated to another doc.
 - Links resolve.
 - Unverified examples are marked.
 - No stale old section contradicts the new content.
+
+For design, architecture, README, setup, and product-contract docs, run a doc-local consistency pass after drafting:
+
+1. List every named surface: binaries, commands, tools, env vars, config files, hooks, package scripts, package artifacts, and shipped docs.
+2. Confirm each surface is either explained locally or linked/delegated to the canonical doc.
+3. Ask: "Did I introduce a new omission or contradiction?"
 
 Final response should name the files changed and evidence checked.

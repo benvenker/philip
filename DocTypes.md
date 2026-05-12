@@ -102,9 +102,12 @@ Include:
 - Request, event, or data flows.
 - Persistence and external dependencies.
 - Security and trust boundaries.
+- Every shipped public binary, CLI command family, MCP tool, config file, environment variable, hook/check, package script, and packaged artifact named by the doc. One sentence is enough for operational surfaces, but a named surface must not disappear after the overview.
 - Known constraints and non-goals.
 
 Avoid untraceable claims like "the system is modular." Show modules, imports, and boundaries.
+
+If the architecture guide is also the product or design contract, run a doc-local coverage check before finalizing: every public surface named in an overview/list/table/diagram is either explained in the guide or explicitly delegated to a canonical setup, API, CLI, runbook, or troubleshooting doc.
 
 ## Runbook
 

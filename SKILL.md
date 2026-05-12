@@ -21,6 +21,7 @@ Read only what the task needs:
 | "Update docs for this PR/diff" | maintain | `Workflows/Maintain.md`, `Writing.md`, maybe `OrbitIntegration.md` |
 | "Prepare bounded branch-state evidence" | diff data layer | Run or read `philip diff`, then use `Workflows/Maintain.md` or `Workflows/Audit.md` as needed |
 | "How should docs be structured?" | architecture | `DocTypes.md`, `Writing.md`, `Audit.md` |
+| "Write/rewrite a design or architecture contract" | design doc | `Workflows/Write.md` or `Workflows/Rewrite.md`, `DocTypes.md`, `Audit.md` |
 | "Large repo, architecture work, unclear codebase, or deeper audit" | exploration | `Exploration.md` plus the active workflow |
 | "Use GitLab Orbit/GKG" | enhanced exploration | `OrbitIntegration.md` plus the active workflow |
 | "Validate or release Philip itself" | validation | `Validation.md`, `README.md`, `SKILL.md` |
@@ -37,6 +38,7 @@ When maintaining docs for a PR/diff, consider running `philip diff` first. It wr
 6. Verify commands and examples when practical. If not run, label them unverified.
 7. Patch the smallest section that fixes the problem in maintain mode.
 8. Report gaps directly. Example: "The setup guide is currently a trapdoor: three commands, two are stale."
+9. Distinguish repo-wide coverage from doc-local completeness. If a doc names a product surface in an overview, list, diagram, or product/design contract, that same doc must explain it later or explicitly delegate to another doc. Do not treat "covered elsewhere in the repo" as sufficient for a doc that presents itself as the contract.
 
 ## Dynamic Inputs
 
@@ -46,6 +48,14 @@ Before deep work, detect:
 - Documentation surface with `rg --files -g '*.md' -g '*.mdx' -g 'docs/**' -g 'README*' -g 'CHANGELOG*'`.
 - Public interfaces with `rg --files -g '*openapi*' -g '*swagger*' -g 'proto/**' -g 'graphql/**' -g 'src/**'`.
 - Whether Orbit context is already available in the user's environment. Do not configure Orbit or ask the user to create credentials.
+
+For docs audits, design docs, and full-doc rewrites, also build a public surface inventory from evidence that applies to the repo:
+
+- Package `bin` entries and executable entry points.
+- MCP tools, CLI commands, subcommands, flags, and capability/help output.
+- Config files, config keys, and environment variables.
+- Package scripts, task runners, hooks, checks, and CI workflows.
+- Shipped docs and artifacts listed in package manifests, especially `package.json.files`.
 
 ## Output Standards
 

@@ -1,6 +1,6 @@
 {
   "name": "@benvenker/philip",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Portable Agent Skill for writing, auditing, rewriting, and maintaining software documentation from code evidence.",
   "type": "commonjs",
   "repository": {
