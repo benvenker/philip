@@ -2,6 +2,7 @@
 .tmp/
 .pi/
 node_modules/
+.philip/
 
 # bv (beads viewer) local config and caches
 .bv/
